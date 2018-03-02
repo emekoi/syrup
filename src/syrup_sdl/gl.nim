@@ -770,11 +770,17 @@ template getShaderInfoLog*(shader:ShaderId) : string =
   glGetShaderInfoLog(shader.GLuint,logLen,addr logLen,logStr)
   $logStr
 
+template detachShader*(program: ShaderProgramId, shader:ShaderId)  =
+  glDetachShader(program.GLuint, shader.GLuint)
+
 template deleteShader*(shader:ShaderId)  =
   glDeleteShader(shader.GLuint)
 
 template createProgram*() : ShaderProgramId  =
   glCreateProgram().ShaderProgramId
+
+template deleteProgram*(program: ShaderProgramId)  =
+  glDeleteProgram(program.GLuint)
 
 template attachShader*(program:ShaderProgramId, shader:ShaderId)  =
   glAttachShader(program.GLuint,shader.GLuint)

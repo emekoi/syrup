@@ -2,6 +2,7 @@ import ../src/syrup
 import random
 
 proc init(): Config =
+  newShader("shader.vert", "shader.frag").use()
   (title: "window", w: 512, h: 512, clear: color(255, 255, 255), fps: 60.0)
 
 proc update(dt: float) =

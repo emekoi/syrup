@@ -48,7 +48,7 @@ let
 var
   MAIN_CONTEXT: Context
 
-export suffer, timer
+export suffer, timer, shader
 
 proc cloneBuffer*(): Buffer = MAIN_CONTEXT.canvas.cloneBuffer()
 proc loadPixels*(src: openarray[uint32], fmt: suffer.PixelFormat) = MAIN_CONTEXT.canvas.loadPixels(src, fmt)
@@ -181,9 +181,19 @@ proc run*(init: proc(): Config, update: proc(dt: float), draw: proc(buf: Buffer)
   var initFunc = init
   var updateFunc = update
   var drawFunc = draw
-
-  MAIN_CONTEXT = setupGraphics(initFunc())
   
+  ###
+  ###
+  ###
+  ###
+  ### error in project structure
+  ###
+  ###
+  ###
+
+  MAIN_CONTEXT = setupGraphics((title: "window", w: 512, h: 512, clear: color(255, 255, 255), fps: 60.0))
+  discard initFunc()
+
   while MAIN_CONTEXT.running:
     while sdl.pollEvent(addr(e)) != 0:
       case e.kind

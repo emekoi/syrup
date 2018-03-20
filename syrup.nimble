@@ -11,7 +11,6 @@ bin          = @["syrup"]
 requires "nim >= 0.17.2"
 requires "suffer >= 0.1.0"
 requires "sdl2_nim >= 2.0.7.0"
-requires "cmixer >= 0.1.0"
 requires "opengl >= 1.1.0"
 requires "glm >= 1.0.2"
 

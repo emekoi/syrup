@@ -1,3 +1,10 @@
+##
+##  Copyright (c) 2017 emekoi
+## 
+##  This library is free software; you can redistribute it and/or modify it
+##  under the terms of the MIT license. See LICENSE for details.
+##
+
 import 
   sdl2/sdl,
   suffer,
@@ -7,7 +14,9 @@ import
   syrup/timer,
   syrup/embed,
   syrup/shader,
-  syrup/gl
+  syrup/gl,
+  syrup/mixer,
+  syrup/system
 
 type
   Config* = tuple
@@ -16,7 +25,7 @@ type
     clear: Pixel
     fps: float
 
-  GLHandle* = ref object
+  GLHandle = ref object
     context*: sdl.GLContext
     vbo*: gl.BufferId
     vao*: gl.VertexArrayId
@@ -27,19 +36,19 @@ type
   Context* = ref object
     running*: bool
     window*: sdl.Window
-    context*: sdl.GLContext
-    handle*: GLHandle
+    context: sdl.GLContext
+    handle: GLHandle
     canvas*: Buffer
     cfg*: Config
-
 
 let
   DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
   VERTICIES = [
-    -1.0f,  1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f,
-     1.0f,  1.0f, 1.0f, 1.0f,   1.0f, 0.0f, 1.0f, 1.0f,
-     1.0f, -1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f, 1.0f,
-    -1.0f, -1.0f, 1.0f, 1.0f,   0.0f, 1.0f, 1.0f, 1.0f,
+    #  Position                Texcoords
+    -1.0f,  1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f, # Top-left
+     1.0f,  1.0f, 1.0f, 1.0f,   1.0f, 0.0f, 1.0f, 1.0f, # Top-right
+     1.0f, -1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f, 1.0f, # Bottom-right
+    -1.0f, -1.0f, 1.0f, 1.0f,   0.0f, 1.0f, 1.0f, 1.0f, # Bottom-left
   ]
   ELEMENTS = [
     0, 1, 2, 3,
@@ -47,8 +56,9 @@ let
 
 var
   MAIN_CONTEXT: Context
+  clearOnStep = true
 
-export suffer, timer, shader
+export suffer, timer, shader, system
 
 proc cloneBuffer*(): Buffer = MAIN_CONTEXT.canvas.cloneBuffer()
 proc loadPixels*(src: openarray[uint32], fmt: suffer.PixelFormat) = MAIN_CONTEXT.canvas.loadPixels(src, fmt)
@@ -86,7 +96,10 @@ proc wave*(src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int)
 proc displace*(src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int) = MAIN_CONTEXT.canvas.displace(src, map, channelX, channelY, scaleX, scaleY)
 proc blur*(src: Buffer, radiusx, radiusy: int) = MAIN_CONTEXT.canvas.blur(src, radiusx, radiusy)
 
+proc clear*(c: bool) = clearOnStep = c
+
 proc finalize(ctx: Context) =
+  mixer.deinit()
   ctx.window.destroyWindow()
   ctx.context.glDeleteContext()
   sdl.quit()
@@ -96,15 +109,15 @@ proc finalize(handle: GLHandle) =
   gl.deleteVertexArray(handle.vao)
   gl.deleteTexture(handle.tex)
 
-proc setupGraphics*(cfg: Config): Context =
-  new(result, finalize)
-  new(result.handle, finalize)
+proc setup*(cfg: Config) =
+  new(MAIN_CONTEXT, finalize)
+  new(MAIN_CONTEXT.handle, finalize)
 
-  if sdl.init(sdl.InitVideo) != 0:
-    quit "ERROR: can't initialize SDL: " & $sdl.getError()
-  
-  if sdl.glSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE) != 0:
-    quit "ERROR: unable set GL_CONTEXT_PROFILE_MASK attribute: " & $sdl.getError()
+  if sdl.init(sdl.INIT_VIDEO) != 0:
+    quit "ERROR: can't initialize SDL video: " & $sdl.getError()
+
+  # if sdl.glSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE) != 0:
+  #   quit "ERROR: unable set GL_CONTEXT_PROFILE_MASK attribute: " & $sdl.getError()
 
   # if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3) != 0:
   #   quit "ERROR: unable set GL_CONTEXT_MAJOR_VERSION attribute: " & $sdl.getError()
@@ -116,22 +129,22 @@ proc setupGraphics*(cfg: Config): Context =
   #   quit "ERROR: unable set GL_STENCIL_SIZE attribute: " & $sdl.getError()
 
   if sdl.glSetAttribute(sdl.GL_DOUBLEBUFFER, GL_TRUE.cint) != 0:
-    quit "ERROR: unable set GL_STENCIL_SIZE attribute: " & $sdl.getError()
+    quit "ERROR: unable set GL_DOUBLEBUFFER attribute: " & $sdl.getError()
 
   # Create window
-  result.window = sdl.createWindow(
+  MAIN_CONTEXT.window = sdl.createWindow(
     cfg.title,
     sdl.WindowPosUndefined,
     sdl.WindowPosUndefined,
     cfg.w, cfg.h, 
     sdl.WINDOW_OPENGL)
 
-  if result.window == nil:
+  if MAIN_CONTEXT.window == nil:
     quit "ERROR: can't create window: " & $sdl.getError()
 
-  result.context = sdl.glCreateContext(result.window)
+  MAIN_CONTEXT.context = sdl.glCreateContext(MAIN_CONTEXT.window)
 
-  if result.context == nil:
+  if MAIN_CONTEXT.context == nil:
     quit "ERROR: can't create OpenGL context: " & $sdl.getError()
 
   loadExtensions()
@@ -139,22 +152,22 @@ proc setupGraphics*(cfg: Config): Context =
   gl.disable(CULL_FACE)
   gl.disable(DEPTH_TEST)
 
-  result.handle.vao = gl.genVertexArray()
-  gl.bindVertexArray(result.handle.vao)
+  MAIN_CONTEXT.handle.vao = gl.genVertexArray()
+  gl.bindVertexArray(MAIN_CONTEXT.handle.vao)
 
-  result.handle.vbo = gl.genBuffer()
-  gl.bindBuffer(BufferTarget.ARRAY_BUFFER, result.handle.vbo)
+  MAIN_CONTEXT.handle.vbo = gl.genBuffer()
+  gl.bindBuffer(BufferTarget.ARRAY_BUFFER, MAIN_CONTEXT.handle.vbo)
   gl.bufferData(BufferTarget.ARRAY_BUFFER, VERTICIES, BufferDataUsage.STATIC_DRAW)
 
-  result.handle.ebo = gl.genBuffer();
-  gl.bindBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, result.handle.ebo)
+  MAIN_CONTEXT.handle.ebo = gl.genBuffer();
+  gl.bindBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, MAIN_CONTEXT.handle.ebo)
   gl.bufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW)
 
-  result.handle.shader = newShaderString(DEFAULT_VERT_DATA, DEFAULT_FRAG_DATA)
-  result.handle.shader.use()
+  MAIN_CONTEXT.handle.shader = newShaderString(DEFAULT_FRAG_DATA)
+  MAIN_CONTEXT.handle.shader.use()
 
-  result.handle.tex = gl.genTexture()
-  gl.bindTexture(TextureTarget.TEXTURE_2D, result.handle.tex)
+  MAIN_CONTEXT.handle.tex = gl.genTexture()
+  gl.bindTexture(TextureTarget.TEXTURE_2D, MAIN_CONTEXT.handle.tex)
 
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
@@ -163,65 +176,56 @@ proc setupGraphics*(cfg: Config): Context =
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
 
+  mixer.init()
 
-  result.canvas = newBuffer(cfg.w, cfg.h)
-  result.cfg = cfg
-  result.running = true
+  MAIN_CONTEXT.canvas = newBuffer(cfg.w, cfg.h)
+  MAIN_CONTEXT.cfg = cfg
 
+  MAIN_CONTEXT.running = true
 
-proc run*(init: proc(): Config, update: proc(dt: float), draw: proc(buf: Buffer)) =
+proc run*(config: proc(): Config, init: proc(), update: proc(dt: float), draw: proc()) =
   var
     last = 0.0
-    e: sdl.Event
+    events: seq[system.Event]
 
-  assert(init != nil)
-  assert(update != nil)
-  assert(draw != nil)
+  assert(config != nil)
 
   var initFunc = init
   var updateFunc = update
   var drawFunc = draw
   
-  ###
-  ###
-  ###
-  ###
-  ### error in project structure
-  ###
-  ###
-  ###
+  setup config()
 
-  MAIN_CONTEXT = setupGraphics((title: "window", w: 512, h: 512, clear: color(255, 255, 255), fps: 60.0))
-  discard initFunc()
+  if initFunc != nil:
+    initFunc()
 
   while MAIN_CONTEXT.running:
-    while sdl.pollEvent(addr(e)) != 0:
-      case e.kind
-      of sdl.Quit:
+    events = system.poll()
+
+    for e in events:
+      if e.id == system.QUIT:
         MAIN_CONTEXT.running = false
-      of KeyDown:
-        case e.key.keysym.sym
-        of sdl.K_Escape: return
-        else: discard
-      else: discard
     
     timer.step()
+      
+    if updateFunc != nil:
+      updateFunc(timer.getDelta())
 
-    updateFunc(timer.getDelta())
+    # clear the screen
+    gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
+    if clearOnStep:
+      MAIN_CONTEXT.canvas.clear(MAIN_CONTEXT.cfg.clear)
+    
+    # run the draw callback    
+    if drawFunc != nil:
+      drawFunc()
 
     # draw the buffer to the screen
-    # gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
-    MAIN_CONTEXT.canvas.clear(MAIN_CONTEXT.cfg.clear)
-    drawFunc(MAIN_CONTEXT.canvas)
-
     let buf = MAIN_CONTEXT.canvas
-
     gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, buf.w, buf.h,
       PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, buf.pixels)
-
     gl.drawElements(gl.DrawMode.QUADS, 4, IndexType.UNSIGNED_INT, 0)
-
     sdl.glSwapWindow(MAIN_CONTEXT.window)
 
     # wait for next frame

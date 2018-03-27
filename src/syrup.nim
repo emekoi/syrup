@@ -11,6 +11,7 @@ import
   os
 
 import
+  syrup/config,
   syrup/timer,
   syrup/embed,
   syrup/shader,
@@ -19,12 +20,6 @@ import
   syrup/system
 
 type
-  Config* = tuple
-    title: string
-    w, h: int
-    clear: Pixel
-    fps: float
-
   GLHandle = ref object
     context*: sdl.GLContext
     vbo*: gl.BufferId
@@ -39,7 +34,6 @@ type
     context: sdl.GLContext
     handle: GLHandle
     canvas*: Buffer
-    cfg*: Config
 
 let
   DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
@@ -109,7 +103,7 @@ proc finalize(handle: GLHandle) =
   gl.deleteVertexArray(handle.vao)
   gl.deleteTexture(handle.tex)
 
-proc setup*(cfg: Config) =
+proc setup*() =
   new(MAIN_CONTEXT, finalize)
   new(MAIN_CONTEXT.handle, finalize)
 
@@ -133,10 +127,10 @@ proc setup*(cfg: Config) =
 
   # Create window
   MAIN_CONTEXT.window = sdl.createWindow(
-    cfg.title,
+    config.title,
     sdl.WindowPosUndefined,
     sdl.WindowPosUndefined,
-    cfg.w, cfg.h, 
+    config.width, config.height, 
     sdl.WINDOW_OPENGL)
 
   if MAIN_CONTEXT.window == nil:
@@ -179,11 +173,10 @@ proc setup*(cfg: Config) =
   mixer.init()
 
   MAIN_CONTEXT.canvas = newBuffer(cfg.w, cfg.h)
-  MAIN_CONTEXT.cfg = cfg
 
   MAIN_CONTEXT.running = true
 
-proc run*(config: proc(): Config, init: proc(), update: proc(dt: float), draw: proc()) =
+proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
   var
     last = 0.0
     events: seq[system.Event]
@@ -194,7 +187,7 @@ proc run*(config: proc(): Config, init: proc(), update: proc(dt: float), draw: p
   var updateFunc = update
   var drawFunc = draw
   
-  setup config()
+  setup()
 
   if initFunc != nil:
     initFunc()

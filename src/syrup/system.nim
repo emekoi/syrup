@@ -1,11 +1,11 @@
 ##
 ##  Copyright (c) 2017 emekoi
-## 
+##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import sdl2/sdl
+import sdl2/sdl, strutils
 
 type
   EventType* = enum
@@ -22,12 +22,12 @@ type
   Event* = object
     case id*: EventType
     of QUIT, NONE: discard
-    of RESIZE: width*, height*: int
+    of RESIZE: width*, height*: int32
     of KEYDOWN, KEYUP: key*: string
     of TEXTINPUT: text*: string
-    of MOUSEMOVE: x*, y*: int
-    of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int]
-  
+    of MOUSEMOVE: x*, y*: int32
+    of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int32]
+
 
 converter buttonStr(id: int): string =
   case id
@@ -52,17 +52,17 @@ proc poll*(): seq[Event] =
       if e.window.event == sdl.WINDOWEVENT_RESIZED:
         event = Event(id: RESIZE, width: e.window.data1, height: e.window.data2)
     of sdl.KEYDOWN:
-        event = Event(id: KEYDOWN, key: $sdl.getKeyName(e.key.keysym.sym))
+        event = Event(id: KEYDOWN, key: ($sdl.getKeyName(e.key.keysym.sym)).toLowerAscii())
     of sdl.KEYUP:
-        event = Event(id: KEYUP, key: $sdl.getKeyName(e.key.keysym.sym))
+        event = Event(id: KEYUP, key: ($sdl.getKeyName(e.key.keysym.sym)).toLowerAscii())
     of sdl.TEXTINPUT:
-      event = Event(id: TEXTINPUT, text: $e.text.text)      
+      event = Event(id: TEXTINPUT, text: $e.text.text)
     of sdl.MOUSEMOTION:
-        event = Event(id: MOUSEMOVE, x: e.motion.x, y: e.motion.y)      
+        event = Event(id: MOUSEMOVE, x: e.motion.x, y: e.motion.y)
     of sdl.MOUSEBUTTONDOWN:
-        event = Event(id: MOUSEBUTTONDOWN, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
+        event = Event(id: MOUSEBUTTONDOWN, press: (buttonStr(e.button.button), e.button.x.int32, e.button.y.int32))
     of sdl.MOUSEBUTTONUP:
-        event = Event(id: MOUSEBUTTONUP, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
+        event = Event(id: MOUSEBUTTONUP, press: (buttonStr(e.button.button), e.button.x.int32, e.button.y.int32))
     else: discard
 
     if event.id != NONE:

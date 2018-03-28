@@ -1,48 +1,34 @@
 ##
 ##  Copyright (c) 2017 emekoi
-## 
+##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import 
+import
   suffer
 
 type
   Config* = tuple
     title: string
-    w, h: int
+    width, height: int32
     clear: Pixel
     fps: float
 
-var _config = Config("syrup", 512, 512, color(255, 255, 255), 60.0)
+var SETTINGS* = (title: "syrup", width: 512'i32, height: 512'i32, clear: color(255, 255, 255), fps: 60.0)
 
-proc `.title=`*(title: string) =
-  _config.title = title
+converter toCString*(str: string): cstring = str.cstring
+converter toCInt*(num: int32): cint = num.cint
 
-proc `.title`*(): string =
-  _config.title
-
-proc `.width=`*(width: int32) =
-  _config.width = width
-
-proc `.width`*(): int32 =
-  _config.width
-  
-proc `.height=`*(height: int32) =
-  _config.height = height
-
-proc `.height`*(): int32 =
-  _config.height
-  
-proc `.clear_color=`*(clear_color: Pixel) =
-  _config.clear = clear_color
-
-proc `.clear_color`*(): Pixel =
-  _config.clear
-  
-proc `.fps=`*(fps: float32) =
-  _config.fps = fps
-
-proc `.fps`*(): float32 =
-  _config.fps
+proc get_config*(): Config = SETTINGS
+proc set_config*(c: Config) = SETTINGS = c
+proc get_title*(): string = SETTINGS.title
+proc set_title*(title: string) = SETTINGS.title = title
+proc get_width*(): int32 = SETTINGS.width
+proc set_width*(width: int32) = SETTINGS.width = width
+proc get_height*(): int32 = SETTINGS.height
+proc set_height*(height: int32) = SETTINGS.height = height
+proc get_clearColor*(): Pixel = SETTINGS.clear
+proc set_clearColor*(clearColor: Pixel) = SETTINGS.clear = clearColor
+proc get_fps*(): float = SETTINGS.fps
+proc set_fps*(fps: float) = SETTINGS.fps = fps

@@ -11,7 +11,7 @@ var keysDown* = newTable[string, bool]()
 var keysPressed* = newTable[string, bool]()
 var buttonsDown* = newTable[string, bool]()
 var buttonsPressed* = newTable[string, bool]()
-var mousePos*: tuple[x: int32, y: int32]
+var mousePos*: tuple[x, y: int]
 
 
 proc onEvent*(e: Event) =

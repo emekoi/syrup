@@ -61,15 +61,15 @@ proc cm_destroy_source(src: ptr cm_Source) {.importc.}
 proc cm_get_error(): cstring {.importc.}
 proc cm_set_loop(src: ptr cm_Source; loop: cint) {.importc.}
 
-proc set_lock*(lock: EventHandler) {.importc: "cm_set_lock".}
-proc set_master_gain*(gain: cdouble) {.importc: "cm_set_master_gain".}
+proc setLock*(lock: EventHandler) {.importc: "cm_set_lock".}
+proc setMasterGain*(gain: cdouble) {.importc: "cm_set_master_gain".}
 proc process*(dst: ptr cshort; len: cint) {.importc: "cm_process".}
-proc get_length*(src: ptr cm_Source): cdouble {.importc: "cm_get_length".}
-proc get_position*(src: ptr cm_Source): cdouble {.importc: "cm_get_position".}
-proc get_state*(src: ptr cm_Source): cint {.importc: "cm_get_state".}
-proc set_gain*(src: ptr cm_Source; gain: cdouble) {.importc: "cm_set_gain".}
-proc set_pan*(src: ptr cm_Source; pan: cdouble) {.importc: "cm_set_pan".}
-proc set_pitch*(src: ptr cm_Source; pitch: cdouble) {.importc: "cm_set_pitch".}
+proc getLength*(src: ptr cm_Source): cdouble {.importc: "cm_get_length".}
+proc getPosition*(src: ptr cm_Source): cdouble {.importc: "cm_get_position".}
+proc getState*(src: ptr cm_Source): cint {.importc: "cm_get_state".}
+proc setGain*(src: ptr cm_Source; gain: cdouble) {.importc: "cm_set_gain".}
+proc setPan*(src: ptr cm_Source; pan: cdouble) {.importc: "cm_set_pan".}
+proc setPitch*(src: ptr cm_Source; pitch: cdouble) {.importc: "cm_set_pitch".}
 proc play*(src: ptr cm_Source) {.importc: "cm_play".}
 proc pause*(src: ptr cm_Source) {.importc: "cm_pause".}
 proc stop*(src: ptr cm_Source) {.importc: "cm_stop".}
@@ -104,29 +104,29 @@ proc newSource*(info: SourceInfo): Source =
   cm_new_source(addr info).wrap()
 
 
-proc source_from_file*(filename: string): Source =
+proc newSourceFromFile*(filename: string): Source =
   cm_new_source_from_file(filename).wrap()
 
 
-proc source_from_mem*(data: pointer; size: int): Source =
+proc newSourceFromMem*(data: pointer; size: int): Source =
   result = cm_new_source_from_mem(data, int32(size)).wrap()
 
 
-proc source_from_mem*(data: string): Source =
+proc newSourceFromMem*(data: string): Source =
   var data = data
-  result = source_from_mem(addr data[0], data.len)
+  result = newSourceFromMem(addr data[0], data.len)
   result.data = cast[ref RootObj](data)
   GC_ref(result.data)
 
 
-proc source_from_mem*(data: seq[uint8]): Source =
+proc newSourceFromMem*(data: seq[uint8]): Source =
   var data = data
-  result = source_from_mem(addr data[0], data.len)
+  result = newSourceFromMem(addr data[0], data.len)
   result.data = cast[ref RootObj](data)
   GC_ref(result.data)
 
 
-proc set_loop*(src: ptr cm_Source, loop: bool) =
+proc setLoop*(src: ptr cm_Source, loop: bool) =
   cm_set_loop(src, if loop: 1 else: 0)
 
 {.push stackTrace: off.}

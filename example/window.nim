@@ -8,39 +8,49 @@
 import ../src/syrup
 import random, times
 
-set_config (title: "window", width: 512'i32, height: 512'i32, clear: color(255, 255, 255), fps: 60.0)
-
+setWindowTitle("window")
+setWindowClear(color(255, 255, 255))
 
 var x, y = 0
-const step = 2
+const step = 20
 var ticks = 0.0
 
-var shader: Shader
+var 
+  shader: Shader
+  frame: Buffer
 
 proc init() =
-  shader = newShader("shader.glsl")
-  shader.use()
-  shader.setVec2("u_resolution", 512, 512)
+  shader = newShaderFromFile("shader.glsl")
+  frame = newBuffer(512, 512)
+  # shader.use()
+  # shader.setVec2("u_resolution", 512, 512)
 
-  floodFill color(255, 255, 255), 0, 0
+  frame.floodFill color(255, 255, 255), 0, 0
 
 proc update(dt: float) =
-  if key_down("escape"): exit()
-  (x, y) = mouse_position()
+  if keyDown("escape"): exit()
+  # (x, y) = mousePosition()
 
 proc draw() =
-  # drawText color(0, 0, 0), $syrup.timer.getFps(), 2, 0
-  # if rand(1.0) > 0.5:
-  #   drawLine color(0, 0, 0), x, y, x + step, y + step
-  # else:
-  #   drawLine color(0, 0, 0), x, y + step, x + step, y
+  if rand(1.0) > 0.5:
+    frame.drawLine color(255, 0, 0), x, y, x + step, y + step
+    # frame.drawLine color(0, 255, 0), x, y, x + step, y + step
+    # frame.drawLine color(0, 0, 255), x, y, x + step, y + step
+  else:
+    frame.drawLine color(255, 0, 0), x, y + step, x + step, y
+    # frame.drawLine color(0, 255, 0), x, y + step, x + step, y
+    # frame.drawLine color(0, 0, 255), x, y + step, x + step, y
   
-  # x += step
-  # if x > 512:
-  #   y += step
-  #   x = 0
-  shader.setVec2("u_mouse", x.float, y.float)
-  shader.setFloat("u_time", ticks)
-  ticks += 0.01
+  x += step
+  if x > 512:
+    y += step
+    x = 0
+
+  drawBuffer(frame, 0, 0)
+  drawText color(0, 0, 0), $syrup.timer.getFps(), 2, 0
+
+  # shader.setVec2("u_mouse", x.float, y.float)
+  # shader.setFloat("u_time", ticks)
+  # ticks += 0.01
 
 syrup.run(init, update, draw)

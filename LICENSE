@@ -41,3 +41,9 @@ src/syrup/gl.nim
 . a typesafe opengl wrapper for the nim language
 . MIT license
 . https://github.com/jackmott/easygl
+
+src/syrup/gifwriter.nim
+. A Nim library for writing animated GIFs
+. MIT license
+. https://github.com/rxi/gifwriter
+

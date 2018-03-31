@@ -51,24 +51,24 @@ proc createAndLinkProgram(vertexSource:string, fragmentSource:string): Shader =
   gl.deleteShader(vert)
   gl.deleteShader(frag)
 
-proc shader_from_file*(fragmentFile:string): Shader =
+proc newShaderFromFile*(fragmentFile:string): Shader =
   result = createAndLinkProgram(DEFAULT_VERT_DATA, readFile(fragmentFile))
 
-proc shader_from_file*(vertexFile, fragmentFile:string): Shader =
+proc newShaderFromFile*(vertexFile, fragmentFile:string): Shader =
   result = createAndLinkProgram(readFile(vertexFile), readFile(fragmentFile))
   
-proc shader_from_mem*(fragmentSource:string): Shader =
+proc newShaderFromMem*(fragmentSource:string): Shader =
   result = createAndLinkProgram(DEFAULT_VERT_DATA, fragmentSource)
   
-proc shader_from_mem*(vertexSource, fragmentSource:string): Shader =
+proc newShaderFromMem*(vertexSource, fragmentSource:string): Shader =
   result = createAndLinkProgram(vertexSource, fragmentSource)
 
-proc set_attribute*(shader: Shader, name: string, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
+proc setAttribute*(shader: Shader, name: string, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
   let attrib = gl.getAttribLocation(shader.program, name)
   gl.vertexAttribPointer(attrib.uint32, size, kind, normal, stride, p)
   gl.enableVertexAttribArray(attrib.uint32)
 
-proc set_attribute*(shader: Shader, location: uint32, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
+proc setAttribute*(shader: Shader, location: uint32, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
   gl.vertexAttribPointer(location, size, kind, normal, stride, p)
   gl.enableVertexAttribArray(location)  
 
@@ -82,32 +82,33 @@ proc use*(shader: Shader) =
   shader.set_attribute(0, 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 0)                   # position
   shader.set_attribute(1, 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 4 * sizeof(float32)) # tex coords
 
-proc set_bool*(shader: Shader, name: string, value: bool) =
+proc setBool*(shader: Shader, name: string, value: bool) =
   gl.setBool(shader.program, name, value)
 
-proc set_int*(shader: Shader, name: string, value: int32) =
+proc setInt*(shader: Shader, name: string, value: int32) =
   gl.setInt(shader.program, name, value)
   
-proc set_float*(shader: Shader, name: string, value: float32) =
+proc setFloat*(shader: Shader, name: string, value: float32) =
   gl.setFloat(shader.program, name, value)
 
-proc set_vec2*(shader: Shader, name: string, value:var Vec2f) =
+proc setVec2*(shader: Shader, name: string, value:var Vec2f) =
   gl.setVec2(shader.program, name, value)
 
-proc set_vec2*(shader: Shader, name: string, x:float32, y:float32) =
+proc setVec2*(shader: Shader, name: string, x:float32, y:float32) =
   gl.setVec2(shader.program, name, x, y)
   
-proc set_vec3*(shader: Shader, name: string, value:var Vec3f) =
+proc setVec3*(shader: Shader, name: string, value:var Vec3f) =
   gl.setVec3(shader.program, name, value)
   
-proc set_vec3*(shader: Shader, name: string, x:float32, y:float32, z:float32) =
+proc setVec3*(shader: Shader, name: string, x:float32, y:float32, z:float32) =
   gl.setVec3(shader.program, name, x, y, z)
 
-proc set_vec4*(shader: Shader, name:string, value: var Vec4f) =
+proc setVec4*(shader: Shader, name:string, value: var Vec4f) =
   gl.setVec4(shader.program, name, value)
 
-proc set_vec4*(shader: Shader, name: string, x:float32, y:float32, z:float32, w:float32) =
+proc setVec4*(shader: Shader, name: string, x:float32, y:float32, z:float32, w:float32) =
   gl.setVec4(shader.program, name, x, y, z, w)
           
-proc set_mat4*(shader: Shader, name: string, value: var Mat4f ) =
+proc setMat4*(shader: Shader, name: string, value: var Mat4f ) =
   gl.setMat4(shader.program, name, value)
+  

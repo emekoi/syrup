@@ -35,7 +35,6 @@ proc step*() =
 proc getDelta*(): float =
   return delta
 
-
 proc getAverage*(): float =
   return average
 

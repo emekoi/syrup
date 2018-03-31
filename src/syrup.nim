@@ -5,24 +5,31 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
+when not defined(MODE_RGBA):
+  {.fatal: "compile syrup with the flag MODE_RGBA".}
+
 import
   sdl2/sdl,
   suffer,
-  os, tables
-
-export suffer
-
-import
-  syrup/config,
+  os, tables,
   syrup/timer,
   syrup/embed,
   syrup/shader,
   syrup/gl,
   syrup/mixer,
   syrup/system,
-  syrup/input
+  syrup/input,
+  syrup/gifwriter,
+  syrup/util
 
-export config, timer, shader, mixer, system
+export
+  suffer,
+  timer,
+  shader,
+  mixer,
+  system,
+  gifwriter,
+  util
 
 type
   GLHandle = ref object
@@ -33,12 +40,18 @@ type
     tex*: gl.TextureId
     shader*: Shader
 
-  Context* = ref object
+  Context = ref object
     running*: bool
     window*: sdl.Window
     context: sdl.GLContext
     handle: GLHandle
     canvas*: Buffer
+  
+  Config* = tuple
+    title: string
+    width, height: int
+    clear: Pixel
+    fps: float
 
 let
   DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
@@ -55,10 +68,12 @@ let
 
 var
   CORE: Context
-  clearOnStep = true
+  SETTINGS = (title: "syrup", width: 512, height: 512, clear: color(255, 255, 255), fps: 60.0)
+  SYRUP_INITED = false
 
-converter toCString*(str: string): cstring = str.cstring
-converter toCInt*(num: int): cint = num.cint
+
+# converter toCString(str: string): cstring = str.cstring
+# converter toCInt(num: int): cint = num.cint
 
 proc finalize(ctx: Context) =
   mixer.deinit()
@@ -71,7 +86,7 @@ proc finalize(handle: GLHandle) =
   gl.deleteVertexArray(handle.vao)
   gl.deleteTexture(handle.tex)
 
-proc setup*() =
+proc setup() =
   new(CORE, finalize)
   new(CORE.handle, finalize)
 
@@ -125,7 +140,7 @@ proc setup*() =
   gl.bindBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, CORE.handle.ebo)
   gl.bufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW)
 
-  CORE.handle.shader = shader_from_mem(DEFAULT_FRAG_DATA)
+  CORE.handle.shader = newShaderFromMem(DEFAULT_FRAG_DATA)
   CORE.handle.shader.use()
 
   CORE.handle.tex = gl.genTexture()
@@ -143,6 +158,7 @@ proc setup*() =
   CORE.canvas = newBuffer(SETTINGS.width, SETTINGS.height)
 
   CORE.running = true
+  SYRUP_INITED = true
 
 
 proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
@@ -202,70 +218,116 @@ proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
 proc exit*() =
   CORE.running = false
 
+# CONFIG
+proc getConfig*(): Config =
+  SETTINGS
+
+proc setConfig*(c: Config) =
+  if not SYRUP_INITED:
+    SETTINGS = c
+
+proc getWindowTitle*(): string =
+  SETTINGS.title
+
+proc setWindowTitle*(title: string) =
+  if not SYRUP_INITED:
+    SETTINGS.title = title
+
+proc getWindowWidth*(): int =
+  SETTINGS.width
+
+proc setWindowWidth*(width: int) =
+  if not SYRUP_INITED:
+    SETTINGS.width = width
+
+proc getWindowHeight*(): int =
+  SETTINGS.height
+
+proc setWindowHeight*(height: int) =
+  if not SYRUP_INITED:
+    SETTINGS.height = height
+
+proc setWindowClear*(): Pixel =
+  SETTINGS.clear
+
+proc setWindowClear*(color: Pixel) =
+  if not SYRUP_INITED:
+    SETTINGS.clear = color
+
+proc getWindowFps*(): float =
+  SETTINGS.fps
+
+proc setWindowFps*(fps: float) =
+  if not SYRUP_INITED:
+    SETTINGS.fps = fps
+
+# GIF
+proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
+  gifwriter.writeGif(gif, CORE.canvas, delay, localPalette)
+
 # INPUT
-proc key_down*(keys: varargs[string]): bool =
+proc keyDown*(keys: varargs[string]): bool =
   result = false
   for k in keys:
     if input.keysDown.hasKey(k) and input.keysDown[k]:
       return true
 
-proc key_pressed*(keys: varargs[string]): bool =
+proc keyPressed*(keys: varargs[string]): bool =
   result = false
   for k in keys:
     if input.keysPressed.hasKey(k) and input.keysPressed[k]:
       return true
 
-proc key_released*(keys: varargs[string]): bool =
-  key_pressed(keys) and not key_down(keys)
+proc keyReleased*(keys: varargs[string]): bool =
+  keyPressed(keys) and not keyDown(keys)
 
-proc mouse_down*(buttons: varargs[string]): bool =
+proc mouseDown*(buttons: varargs[string]): bool =
   result = false
   for b in buttons:
     if input.buttonsDown.hasKey(b) and input.buttonsDown[b]:
       return true
 
-proc mouse_pressed*(buttons: varargs[string]): bool =
+proc mousePressed*(buttons: varargs[string]): bool =
   result = false
   for b in buttons:
     if input.buttonsPressed.hasKey(b) and input.buttonsPressed[b]:
       return true
 
-proc mouse_released*(buttons: varargs[string]): bool =
-  mouse_down(buttons) and not mouse_pressed(buttons)
+proc mouseReleased*(buttons: varargs[string]): bool =
+  mouseDown(buttons) and not mousePressed(buttons)
 
-proc mouse_position*(): (int32, int32) =
+proc mousePosition*(): (int, int) =
   (input.mousePos.x, input.mousePos.y)
 
 # GRAPHICS
-proc buffer_blank*(width, height: int): Buffer = suffer.newBuffer(width, height)
-proc buffer_clone*(): Buffer = CORE.canvas.cloneBuffer()
-proc load_pixels*(src: openarray[uint32], fmt: suffer.PixelFormat) = CORE.canvas.loadPixels(src, fmt)
-proc load_pixels8*(src: openarray[uint8], pal: openarray[Pixel]) = CORE.canvas.loadPixels8(src, pal)
-proc load_pixels8*(src: openarray[uint8]) = CORE.canvas.loadPixels8(src)
-proc set_blend*(blend: suffer.BlendMode) = CORE.canvas.setBlend(blend)
-proc set_alpha*[T](alpha: T) = CORE.canvas.setAlpha(alpha)
-proc set_color*(c: Pixel) = CORE.canvas.setColor(c)
-proc set_clip*(r: suffer.Rect) = CORE.canvas.setClip(r)
+proc cloneBuffer*(): Buffer = CORE.canvas.cloneBuffer()
+proc loadPixels*(src: openarray[uint32], fmt: suffer.PixelFormat) = CORE.canvas.loadPixels(src, fmt)
+proc loadPixels8*(src: openarray[uint8], pal: openarray[Pixel]) = CORE.canvas.loadPixels8(src, pal)
+proc loadPixels8*(src: openarray[uint8]) = CORE.canvas.loadPixels8(src)
+proc setBlend*(blend: suffer.BlendMode) = CORE.canvas.setBlend(blend)
+proc setAlpha*[T](alpha: T) = CORE.canvas.setAlpha(alpha)
+proc setColor*(c: Pixel) = CORE.canvas.setColor(c)
+proc setClip*(r: suffer.Rect) = CORE.canvas.setClip(r)
 proc reset*() = CORE.canvas.reset()
 proc clear*(c: Pixel) = CORE.canvas.clear(c)
-proc get_pixel*(x: int, y: int): Pixel = CORE.canvas.getPixel(x, y)
-proc set_pixel*(c: Pixel, x: int, y: int) = CORE.canvas.setPixel(c, x, y)
-proc copy_pixels*(src: Buffer, x, y: int, sub: suffer.Rect, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sub, sx, sy)
-proc copy_pixels*(src: Buffer, x, y: int, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sx, sy)
+proc getPixel*(x: int, y: int): Pixel = CORE.canvas.getPixel(x, y)
+proc setPixel*(c: Pixel, x: int, y: int) = CORE.canvas.setPixel(c, x, y)
+proc copyPixels*(src: Buffer, x, y: int, sub: suffer.Rect, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sub, sx, sy)
+proc copyPixels*(src: Buffer, x, y: int, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sx, sy)
 proc noise*(seed: uint, low, high: int, grey: bool) = CORE.canvas.noise(seed, low, high, grey)
-proc flood_fill*(c: Pixel, x, y: int) = CORE.canvas.floodFill(c, x, y)
-proc draw_pixel*(c: Pixel, x, y: int) = CORE.canvas.drawPixel(c, x, y)
-proc draw_line*(c: Pixel, x0, y0, x1, y1: int) = CORE.canvas.drawLine(c, x0, y0, x1, y1)
-proc draw_rect*(c: Pixel, x, y, w, h: int) = CORE.canvas.drawRect(c, x, y, w, h)
-proc draw_box*(c: Pixel, x, y, w, h: int) = CORE.canvas.drawBox(c, x, y, w, h)
-proc draw_circle*(c: Pixel, x, y, r: int) = CORE.canvas.drawCircle(c, x, y, r)
-proc draw_ring*(c: Pixel, x, y, r: int) = CORE.canvas.drawRing(c, x, y, r)
-proc draw_text*(font: Font, c: Pixel, txt: string, x, y: int, width: int=0) = CORE.canvas.drawText(font, c, txt, x, y, width)
-proc draw_text*(c: Pixel, txt: string, x, y: int, width: int=0) = CORE.canvas.drawText(DEFAULT_FONT, c, txt, x, y, width)
-proc draw_buffer*(src: Buffer, x, y: int, sub: suffer.Rect, t: Transform) = CORE.canvas.drawBuffer(src, x, y, sub, t)
-proc draw_buffer*(src: Buffer, x, y: int, sub: suffer.Rect) = CORE.canvas.drawBuffer(src, x, y, sub)
-proc draw_buffer*(src: Buffer, x, y: int, t: Transform) = CORE.canvas.drawBuffer(src, x, y, t)
-proc draw_buffer*(src: Buffer, x, y: int) = CORE.canvas.drawBuffer(src, x, y)
+proc floodFill*(c: Pixel, x, y: int) = CORE.canvas.floodFill(c, x, y)
+proc drawPixel*(c: Pixel, x, y: int) = CORE.canvas.drawPixel(c, x, y)
+proc drawLine*(c: Pixel, x0, y0, x1, y1: int) = CORE.canvas.drawLine(c, x0, y0, x1, y1)
+proc drawRect*(c: Pixel, x, y, w, h: int) = CORE.canvas.drawRect(c, x, y, w, h)
+proc drawBox*(c: Pixel, x, y, w, h: int) = CORE.canvas.drawBox(c, x, y, w, h)
+proc drawCircle*(c: Pixel, x, y, r: int) = CORE.canvas.drawCircle(c, x, y, r)
+proc drawRing*(c: Pixel, x, y, r: int) = CORE.canvas.drawRing(c, x, y, r)
+proc drawText*(font: Font, c: Pixel, txt: string, x, y: int, width: int=0) = CORE.canvas.drawText(font, c, txt, x, y, width)
+proc drawText*(c: Pixel, txt: string, x, y: int, width: int=0) = CORE.canvas.drawText(DEFAULT_FONT, c, txt, x, y, width)
+proc drawBuffer*(src: Buffer, x, y: int, sub: suffer.Rect, t: Transform) = CORE.canvas.drawBuffer(src, x, y, sub, t)
+proc drawBuffer*(src: Buffer, x, y: int, sub: suffer.Rect) = CORE.canvas.drawBuffer(src, x, y, sub)
+proc drawBuffer*(src: Buffer, x, y: int, t: Transform) = CORE.canvas.drawBuffer(src, x, y, t)
+proc drawBuffer*(src: Buffer, x, y: int) = CORE.canvas.drawBuffer(src, x, y)
 proc desaturate*(amount: int) = CORE.canvas.desaturate(amount)
 proc mask*(mask: Buffer, channel: char) = CORE.canvas.mask(mask, channel)
 proc palette*(palette: openarray[Pixel]) = CORE.canvas.palette(palette)

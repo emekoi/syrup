@@ -22,11 +22,11 @@ type
   Event* = object
     case id*: EventType
     of QUIT, NONE: discard
-    of RESIZE: width*, height*: int32
+    of RESIZE: width*, height*: int
     of KEYDOWN, KEYUP: key*: string
     of TEXTINPUT: text*: string
-    of MOUSEMOVE: x*, y*: int32
-    of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int32]
+    of MOUSEMOVE: x*, y*: int
+    of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int]
 
 
 converter buttonStr(id: int): string =
@@ -60,9 +60,9 @@ proc poll*(): seq[Event] =
     of sdl.MOUSEMOTION:
         event = Event(id: MOUSEMOVE, x: e.motion.x, y: e.motion.y)
     of sdl.MOUSEBUTTONDOWN:
-        event = Event(id: MOUSEBUTTONDOWN, press: (buttonStr(e.button.button), e.button.x.int32, e.button.y.int32))
+        event = Event(id: MOUSEBUTTONDOWN, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
     of sdl.MOUSEBUTTONUP:
-        event = Event(id: MOUSEBUTTONUP, press: (buttonStr(e.button.button), e.button.x.int32, e.button.y.int32))
+        event = Event(id: MOUSEBUTTONUP, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
     else: discard
 
     if event.id != NONE:

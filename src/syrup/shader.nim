@@ -41,13 +41,6 @@ proc createAndLinkProgram(vertexSource:string, fragmentSource:string): Shader =
   result.fragLog = $frag.getShaderInfoLog()
   result.progLog = $result.program.getProgramInfoLog()
 
-  if result.vertLog.len > 0:
-    echo result.vertLog
-  if result.fragLog.len > 0:
-      echo result.fragLog
-  if result.progLog.len > 0:
-      echo result.progLog
-
   gl.deleteShader(vert)
   gl.deleteShader(frag)
 

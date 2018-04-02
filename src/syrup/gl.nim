@@ -763,33 +763,56 @@ template unmapBuffer*(target:BufferTarget) =
   glUnmapBuffer(target)
 
 template genVertexArray*() : VertexArrayId  =
-  var VAO : GLuint
-  glGenVertexArrays(1,cast[ptr GLuint](addr VAO))
-  VAO.VertexArrayId
+  var vao : GLuint
+  when hostOS == "macosx":
+    glGenVertexArraysAPPLE(1,addr vao)  
+  else:
+    glGenVertexArrays(1,addr vao)
+  vao.VertexArrayId
 
 # Gen and bind vertex array in one go
-template genBindVertexArray*() : VertexArrayId  =
-  var VAO : GLuint
-  glGenVertexArrays(1,addr VAO)
-  glBindVertexArray(VAO)
-  VAO.VertexArrayId
+template genBindVertexArray*() : VertexArrayId =
+  var vao : GLuint
+  when hostOS == "macosx":
+    glGenVertexArraysAPPLE(1,addr vao)
+    glBindVertexArrayAPPLE(vao)
+  else:
+    glGenVertexArrays(1,addr vao)
+    glBindVertexArray(vao)
+  vao.VertexArrayId
 
 template genVertexArrays*(count:int32) : seq[VertexArrayId]  =
   let vertexArrays = newSeq[VertexArrayId](count)
-  glGenVertexArrays(count,cast[ptr GLuint](vertexArrays[0].unsafeAddr))
+  when hostOS == "macosx":
+    glGenVertexArraysAPPLE(count,cast[ptr GLuint](vertexArrays[0].unsafeAddr))
+  else:
+    glGenVertexArrays(count,cast[ptr GLuint](vertexArrays[0].unsafeAddr))
   vertexArrays
 
 template bindVertexArray*(vertexArray:VertexArrayId)  =
-  glBindVertexArray(vertexArray)
+  when hostOS == "macosx":
+    glBindVertexArrayAPPLE(vertexArray)
+  else:
+    glBindVertexArray(vertexArray)
 
 template unBindVertexArray*() =
-  glBindVertexArray(0)
+  when hostOS == "macosx":
+    glBindVertexArrayAPPLE(0)
+  else:
+    glBindVertexArray(0)
 
 template deleteVertexArray*(vertexArray:VertexArrayId) =
-  glDeleteVertexArrays(1,cast[ptr GLuint](vertexArray.unsafeAddr))
+  when hostOS == "macosx":
+    glDeleteVertexArraysAPPLE(1,cast[ptr GLuint](vertexArray.unsafeAddr))
+  else:
+    glDeleteVertexArrays(1,cast[ptr GLuint](vertexArray.unsafeAddr))
 
 template deleteVertexArrays*(vertexArrays:openArray[VertexArrayId]) =
-  glDeleteVertexArrays(vertexArrays.len,cast[ptr GLUint](vertexArrays[0].unsafeAddr))
+  
+  when hostOS == "macosx":
+    glDeleteVertexArraysAPPLE(vertexArrays.len,cast[ptr GLUint](vertexArrays[0].unsafeAddr))
+  else:
+    glDeleteVertexArrays(vertexArrays.len,cast[ptr GLUint](vertexArrays[0].unsafeAddr))
 
 template genTexture*() : TextureId =
   var tex : GLuint

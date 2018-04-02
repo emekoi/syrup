@@ -9,18 +9,9 @@ when not defined(MODE_RGBA):
   {.fatal: "compile syrup with the flag MODE_RGBA".}
 
 import
-  sdl2/sdl,
-  suffer,
-  os, tables,
-  syrup/timer,
-  syrup/embed,
-  syrup/shader,
-  syrup/gl,
-  syrup/mixer,
-  syrup/system,
-  syrup/input,
-  syrup/gifwriter,
-  syrup/util
+  sdl2/sdl, suffer, os, tables,
+  syrup/[timer, embed, shader, gl, mixer],
+  syrup/[system, input, gifwriter, util]
 
 export
   suffer,
@@ -93,13 +84,13 @@ proc setup() =
   if sdl.init(sdl.INIT_VIDEO) != 0:
     quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE) != 0:
+  # if sdl.glSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_COMPATIBILITY) != 0:
   #   quit "ERROR: unable set GL_CONTEXT_PROFILE_MASK attribute: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3) != 0:
+  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2) != 0:
   #   quit "ERROR: unable set GL_CONTEXT_MAJOR_VERSION attribute: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 0) != 0:
+  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1) != 0:
   #   quit "ERROR: unable set GL_CONTEXT_MINOR_VERSION attribute: " & $sdl.getError()
 
   # if sdl.glSetAttribute(sdl.GL_STENCIL_SIZE, 8) != 0:
@@ -129,23 +120,22 @@ proc setup() =
   gl.disable(CULL_FACE)
   gl.disable(DEPTH_TEST)
 
-  CORE.handle.vao = gl.genVertexArray()
-  gl.bindVertexArray(CORE.handle.vao)
-
-  CORE.handle.vbo = gl.genBuffer()
-  gl.bindBuffer(BufferTarget.ARRAY_BUFFER, CORE.handle.vbo)
-  gl.bufferData(BufferTarget.ARRAY_BUFFER, VERTICIES, BufferDataUsage.STATIC_DRAW)
-
-  CORE.handle.ebo = gl.genBuffer();
-  gl.bindBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, CORE.handle.ebo)
-  gl.bufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW)
-
+  CORE.handle.vao = gl.genBindVertexArray()
+  
+  CORE.handle.vbo = gl.genBindBufferData(BufferTarget.ARRAY_BUFFER, VERTICIES, BufferDataUsage.STATIC_DRAW)
+  CORE.handle.ebo = gl.genBindBufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW);
+  
   CORE.handle.shader = newShaderFromMem(DEFAULT_FRAG_DATA)
   CORE.handle.shader.use()
 
-  CORE.handle.tex = gl.genTexture()
-  gl.bindTexture(TextureTarget.TEXTURE_2D, CORE.handle.tex)
-
+  CORE.handle.tex = gl.genBindTexture(TextureTarget.TEXTURE_2D)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_BASE_LEVEL, 0)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
+  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
+  
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_BASE_LEVEL, 0)
@@ -185,7 +175,7 @@ proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
       updateFunc(timer.getDelta())
 
     # clear the screen
-    gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);    
     gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
     CORE.canvas.clear(SETTINGS.clear)
 

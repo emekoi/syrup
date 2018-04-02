@@ -13,7 +13,7 @@ setWindowClear(color(255, 255, 255))
 
 var x, y = 0
 const step = 20
-var ticks = 0.0
+# var ticks = 0.0
 
 var 
   shader: Shader

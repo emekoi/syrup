@@ -9,11 +9,44 @@ import
   suffer,
   timer
 
-type Animation* = object
-  fps*: int
-  frames*: seq[Rect]
-  currentFrame: int
-  wait, timer: float
+type
+  Animation* = object
+    fps*: int
+    frames*: seq[Rect]
+    currentFrame: int
+    wait, timer: float
+
+  # DrawListType {.pure.} = enum
+  #   LINE,
+  #   RECT,
+  #   BOX, 
+  #   CIRCLE,
+  #   RING,
+  #   TEXT,
+  #   BUFFER,
+  #   PROC
+
+  # DrawListItem = object
+  #   case kind: DrawListType
+  #   of DrawListType.LINE:
+  #     line: tuple[color: Pixel, x0, y0, x1, y1: int]
+  #   of DrawListType.RECT:
+  #     rect: tuple[color: Pixel, x, y, w, h: int]
+  #   of DrawListType.BOX:
+  #     box: tuple[color: Pixel, x, y, w, h: int]
+  #   of DrawListType.CIRCLE:
+  #     circle: tuple[color: Pixel, x, y, r: int]
+  #   of DrawListType.RING:
+  #     ring: tuple[color: Pixel, x, y, r: int]
+  #   of DrawListType.TEXT:
+  #     text: tuple[color: Pixel, font: Font, x, y, r: int]
+  #   of DrawListType.BUFFER:
+  #     buffer: tuple[dest: Buffer, x, y: int, sub: Rect, t: Transform]
+  #   of DrawListType.PROC:
+  #     cb: tuple[color: Pixel, x0, y0, x1, y1: int]
+
+  # DrawList* = object
+
 
 proc newAnimation*(fps: int, frames: varargs[Rect]): Animation =
   result.fps = fps

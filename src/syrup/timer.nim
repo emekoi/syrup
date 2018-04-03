@@ -17,9 +17,14 @@ var
   avgAcc = 1.0
   avgCount = 1.0
 
+proc getNow*(): float =
+  0.0
+
+proc getTime*(): float =
+  sdl.getTicks().float / 1000.float
 
 proc step*() =
-  let now = (sdl.getTicks() div 1000).float
+  let now = sdl.getTicks().float / 1000.float
   if last == 0: last = now
   delta = now - last
   last = now
@@ -39,4 +44,4 @@ proc getAverage*(): float =
   return average
 
 proc getFps*(): int32 =
-  return int32((1 / average + 0.5).floor())
+  return (1 / average + 0.5).floor().int32()

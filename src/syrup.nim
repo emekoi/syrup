@@ -5,99 +5,118 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-when not defined(MODE_RGBA):
-  {.fatal: "compile syrup with the flag MODE_RGBA".}
-
-import
-  sdl2/sdl, suffer, os, tables,
-  syrup/[timer, embed, shader, gl, mixer],
-  syrup/[system, input, gifwriter, util]
-
+when defined(SYRUP_GL):
+  when not defined(MODE_RGBA):
+    {.fatal: "compile syrup with the flag MODE_RGBA".}
+  import
+    sdl2/sdl, suffer, os, tables,
+    syrup/[timer, embed, shader, gl, mixer],
+    syrup/[system, input, gifwriter]
+else:
+  import
+    sdl2/sdl, suffer, os, tables,
+    syrup/[timer, embed, shader, mixer],
+    syrup/[system, input, gifwriter]
+  
 export
   suffer,
   timer,
   shader,
   mixer,
-  system,
-  gifwriter,
-  util
+  system
+  # gifwriter
 
-type
-  GLHandle = ref object
-    context*: sdl.GLContext
-    vbo*: gl.BufferId
-    vao*: gl.VertexArrayId
-    ebo*: gl.BufferId
-    tex*: gl.TextureId
-    shader*: Shader
+when defined(SYRUP_GL):
+  type
+    GLHandle = ref object
+      context*: sdl.GLContext
+      vbo*: gl.BufferId
+      vao*: gl.VertexArrayId
+      ebo*: gl.BufferId
+      tex*: gl.TextureId
+      shader*: Shader
 
-  Context = ref object
+    Context = ref object
+      running*: bool
+      window*: sdl.Window
+      context: sdl.GLContext
+      handle: GLHandle
+      canvas*: Buffer
+else:
+  type Context = ref object
     running*: bool
     window*: sdl.Window
-    context: sdl.GLContext
-    handle: GLHandle
+    surface*: sdl.Surface
     canvas*: Buffer
-  
-  Config* = tuple
-    title: string
-    width, height: int
-    clear: Pixel
-    fps: float
+    canvas_size: int
 
-let
-  DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
-  VERTICIES = [
-    #  Position                Texcoords
-    -1.0f,  1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f, # Top-left
-     1.0f,  1.0f, 1.0f, 1.0f,   1.0f, 0.0f, 1.0f, 1.0f, # Top-right
-     1.0f, -1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f, 1.0f, # Bottom-right
-    -1.0f, -1.0f, 1.0f, 1.0f,   0.0f, 1.0f, 1.0f, 1.0f, # Bottom-left
-  ]
-  ELEMENTS = [
-    0, 1, 2, 3,
-  ]
+type Config* = tuple
+  title: string
+  width, height: int
+  fullscreen: bool
+  resizable: bool
+  bordered: bool
+  clear: Pixel
+  fps: float
+  
+
+when defined(SYRUP_GL):
+  let
+    VERTICIES = [
+      #  Position                Texcoords
+      -1.0f,  1.0f, 1.0f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f, # Top-left
+       1.0f,  1.0f, 1.0f, 1.0f,   1.0f, 0.0f, 1.0f, 1.0f, # Top-right
+       1.0f, -1.0f, 1.0f, 1.0f,   1.0f, 1.0f, 1.0f, 1.0f, # Bottom-right
+      -1.0f, -1.0f, 1.0f, 1.0f,   0.0f, 1.0f, 1.0f, 1.0f, # Bottom-left
+    ]
+    ELEMENTS = [
+      0, 1, 2, 3,
+    ]
+
+let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
 
 var
   CORE: Context
-  SETTINGS = (title: "syrup", width: 512, height: 512, clear: color(255, 255, 255), fps: 60.0)
-  SYRUP_INITED = false
-
-
-# converter toCString(str: string): cstring = str.cstring
-# converter toCInt(num: int): cint = num.cint
-
+  SETTINGS: Config = (
+    "syrup", 512, 512,
+    false, false, true,
+    color(255, 255, 255), 60.0,
+  )
+  
 proc finalize(ctx: Context) =
   mixer.deinit()
   ctx.window.destroyWindow()
-  ctx.context.glDeleteContext()
+  when defined(SYRUP_GL):
+    ctx.context.glDeleteContext()
   sdl.quit()
-
-proc finalize(handle: GLHandle) =
-  gl.deleteBuffers([handle.ebo, handle.vbo])
-  gl.deleteVertexArray(handle.vao)
-  gl.deleteTexture(handle.tex)
-
+  
+when defined(SYRUP_GL):
+  proc finalize(handle: GLHandle) =
+    gl.deleteBuffers([handle.ebo, handle.vbo])
+    gl.deleteVertexArray(handle.vao)
+    gl.deleteTexture(handle.tex)
+  
 proc setup() =
   new(CORE, finalize)
-  new(CORE.handle, finalize)
+  when defined(SYRUP_GL):
+    new(CORE.handle, finalize)
+
+  var flags = 0'u32
 
   if sdl.init(sdl.INIT_VIDEO) != 0:
     quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_COMPATIBILITY) != 0:
-  #   quit "ERROR: unable set GL_CONTEXT_PROFILE_MASK attribute: " & $sdl.getError()
+  when defined(SYRUP_GL):
+    if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2) != 0:
+      quit "ERROR: unable set GL_CONTEXT_MAJOR_VERSION attribute: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2) != 0:
-  #   quit "ERROR: unable set GL_CONTEXT_MAJOR_VERSION attribute: " & $sdl.getError()
+    if sdl.glSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1) != 0:
+      quit "ERROR: unable set GL_CONTEXT_MINOR_VERSION attribute: " & $sdl.getError()
 
-  # if sdl.glSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1) != 0:
-  #   quit "ERROR: unable set GL_CONTEXT_MINOR_VERSION attribute: " & $sdl.getError()
-
-  # if sdl.glSetAttribute(sdl.GL_STENCIL_SIZE, 8) != 0:
-  #   quit "ERROR: unable set GL_STENCIL_SIZE attribute: " & $sdl.getError()
-
-  if sdl.glSetAttribute(sdl.GL_DOUBLEBUFFER, GL_TRUE.cint) != 0:
-    quit "ERROR: unable set GL_DOUBLEBUFFER attribute: " & $sdl.getError()
+    if sdl.glSetAttribute(sdl.GL_DOUBLEBUFFER, GL_TRUE.cint) != 0:
+      quit "ERROR: unable set GL_DOUBLEBUFFER attribute: " & $sdl.getError()
+    
+    flags = sdl.WINDOW_OPENGL
 
   # Create window
   CORE.window = sdl.createWindow(
@@ -105,63 +124,51 @@ proc setup() =
     sdl.WindowPosUndefined,
     sdl.WindowPosUndefined,
     SETTINGS.width, SETTINGS.height,
-    sdl.WINDOW_OPENGL)
+    flags)
 
   if CORE.window == nil:
     quit "ERROR: can't create window: " & $sdl.getError()
 
-  CORE.context = sdl.glCreateContext(CORE.window)
+  when defined(SYRUP_GL):
+    CORE.context = sdl.glCreateContext(CORE.window)
 
-  if CORE.context == nil:
-    quit "ERROR: can't create OpenGL context: " & $sdl.getError()
+    if CORE.context == nil:
+      quit "ERROR: can't create OpenGL context: " & $sdl.getError()
 
-  loadExtensions()
+    loadExtensions()
 
-  gl.disable(CULL_FACE)
-  gl.disable(DEPTH_TEST)
+    gl.disable(CULL_FACE)
+    gl.disable(DEPTH_TEST)
 
-  CORE.handle.vao = gl.genBindVertexArray()
-  
-  CORE.handle.vbo = gl.genBindBufferData(BufferTarget.ARRAY_BUFFER, VERTICIES, BufferDataUsage.STATIC_DRAW)
-  CORE.handle.ebo = gl.genBindBufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW);
-  
-  CORE.handle.shader = newShaderFromMem(DEFAULT_FRAG_DATA)
-  CORE.handle.shader.use()
+    CORE.handle.vao = gl.genBindVertexArray()
+    
+    CORE.handle.vbo = gl.genBindBufferData(BufferTarget.ARRAY_BUFFER, VERTICIES, BufferDataUsage.STATIC_DRAW)
+    CORE.handle.ebo = gl.genBindBufferData(BufferTarget.ELEMENT_ARRAY_BUFFER, ELEMENTS, BufferDataUsage.STATIC_DRAW);
+    
+    CORE.handle.shader = newShaderFromMem(DEFAULT_FRAG_DATA)
+    CORE.handle.shader.use()
 
-  CORE.handle.tex = gl.genBindTexture(TextureTarget.TEXTURE_2D)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_BASE_LEVEL, 0)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
-  
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_BASE_LEVEL, 0)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
-  gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
-
-  mixer.init()
+    CORE.handle.tex = gl.genBindTexture(TextureTarget.TEXTURE_2D)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_BASE_LEVEL, 0)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
+    gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
+  else:
+    CORE.surface = CORE.window.getWindowSurface()
+    CORE.canvas_size = SETTINGS.width * SETTINGS.height * sizeof(Pixel)
 
   CORE.canvas = newBuffer(SETTINGS.width, SETTINGS.height)
 
+  mixer.init()
   CORE.running = true
-  SYRUP_INITED = true
 
-
-proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
+proc run*(update: proc(dt: float), draw: proc()) =
   var last = 0.0
 
-  var initFunc = init
   var updateFunc = update
   var drawFunc = draw
-
-  setup()
-
-  if initFunc != nil:
-    initFunc()
 
   while CORE.running:
     for e in system.poll():
@@ -175,8 +182,9 @@ proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
       updateFunc(timer.getDelta())
 
     # clear the screen
-    gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);    
-    gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
+    when defined(SYRUP_GL):
+      gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);    
+      gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
     CORE.canvas.clear(SETTINGS.clear)
 
     # run the draw callback
@@ -186,11 +194,20 @@ proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
     input.reset()
 
     # draw the buffer to the screen
-    let buf = CORE.canvas
-    gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, buf.w, buf.h,
-      PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, buf.pixels)
-    gl.drawElements(gl.DrawMode.QUADS, 4, IndexType.UNSIGNED_INT, 0)
-    sdl.glSwapWindow(CORE.window)
+    when defined(SYRUP_GL):
+      let buf = CORE.canvas
+      gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, buf.w, buf.h,
+        PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, buf.pixels)
+      gl.drawElements(gl.DrawMode.QUADS, 4, IndexType.UNSIGNED_INT, 0)
+      sdl.glSwapWindow(CORE.window)
+    else:
+      if CORE.surface != nil and CORE.surface.mustLock():
+        if CORE.surface.lockSurface() != 0:
+          quit "ERROR: couldn't lock screen: " & $sdl.getError()
+      copyMem(CORE.surface.pixels, CORE.canvas.pixels[0].addr, CORE.canvas_size)
+      if CORE.surface.mustLock(): CORE.surface.unlockSurface()
+      if CORE.window.updateWindowSurface() != 0:
+        quit "ERROR: couldn't update screen: " & $sdl.getError()
 
     # wait for next frame
     let step = 1.0 / SETTINGS.fps
@@ -202,58 +219,82 @@ proc run*(init: proc(), update: proc(dt: float), draw: proc()) =
     else:
       last = now
 
-  # shutdown sdl
-  sdl.quit()
-
 proc exit*() =
   CORE.running = false
 
 # CONFIG
+proc resetVideoMode() =
+  discard sdl.setWindowFullscreen(CORE.window, if SETTINGS.fullscreen: sdl.WINDOW_FULLSCREEN_DESKTOP else: 0)
+  sdl.setWindowSize(CORE.window, SETTINGS.width, SETTINGS.height)
+  sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
+  sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
+  CORE.canvas.resize(SETTINGS.width, SETTINGS.height)
+  CORE.canvas.reset()
+  
 proc getConfig*(): Config =
   SETTINGS
 
 proc setConfig*(c: Config) =
-  if not SYRUP_INITED:
-    SETTINGS = c
+  SETTINGS = c
+  resetVideoMode()
 
 proc getWindowTitle*(): string =
   SETTINGS.title
 
 proc setWindowTitle*(title: string) =
-  if not SYRUP_INITED:
-    SETTINGS.title = title
+  SETTINGS.title = title
+  sdl.setWindowTitle(CORE.window, title)
 
 proc getWindowWidth*(): int =
   SETTINGS.width
 
 proc setWindowWidth*(width: int) =
-  if not SYRUP_INITED:
-    SETTINGS.width = width
+  SETTINGS.width = width
+  resetVideoMode()
 
 proc getWindowHeight*(): int =
   SETTINGS.height
 
 proc setWindowHeight*(height: int) =
-  if not SYRUP_INITED:
-    SETTINGS.height = height
+  SETTINGS.height = height
+  resetVideoMode()
+
+proc getWindowFullscreen*(): bool =
+  SETTINGS.fullscreen
+
+proc setWindowFullscreen*(fullscreen: bool) =
+  SETTINGS.fullscreen = fullscreen
+  resetVideoMode()
+
+proc getWindowResizable*(): bool =
+  SETTINGS.resizable
+
+proc setWindowResizable*(resizable: bool) =
+  SETTINGS.resizable = resizable
+  resetVideoMode()
+
+proc getWindowBordered*(): bool =
+  SETTINGS.bordered
+
+proc setWindowBordered*(bordered: bool) =
+  SETTINGS.bordered = bordered
+  resetVideoMode()
 
 proc setWindowClear*(): Pixel =
   SETTINGS.clear
 
 proc setWindowClear*(color: Pixel) =
-  if not SYRUP_INITED:
-    SETTINGS.clear = color
+  SETTINGS.clear = color
 
 proc getWindowFps*(): float =
   SETTINGS.fps
 
 proc setWindowFps*(fps: float) =
-  if not SYRUP_INITED:
-    SETTINGS.fps = fps
+  SETTINGS.fps = fps
 
 # GIF
-proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
-  gifwriter.writeGif(gif, CORE.canvas, delay, localPalette)
+# proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
+  # gifwriter.writeGif(gif, CORE.canvas, delay, localPalette)
 
 # INPUT
 proc keyDown*(keys: varargs[string]): bool =
@@ -302,8 +343,8 @@ proc reset*() = CORE.canvas.reset()
 proc clear*(c: Pixel) = CORE.canvas.clear(c)
 proc getPixel*(x: int, y: int): Pixel = CORE.canvas.getPixel(x, y)
 proc setPixel*(c: Pixel, x: int, y: int) = CORE.canvas.setPixel(c, x, y)
-proc copyPixels*(src: Buffer, x, y: int, sub: suffer.Rect, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sub, sx, sy)
-proc copyPixels*(src: Buffer, x, y: int, sx, sy: float) = CORE.canvas.copyPixels(src, x, y, sx, sy)
+proc copyPixels*(src: Buffer, x, y: int, sub: suffer.Rect, sx, sy: float=1.0) = CORE.canvas.copyPixels(src, x, y, sub, sx, sy)
+proc copyPixels*(src: Buffer, x, y: int, sx, sy: float=1.0) = CORE.canvas.copyPixels(src, x, y, sx, sy)
 proc noise*(seed: uint, low, high: int, grey: bool) = CORE.canvas.noise(seed, low, high, grey)
 proc floodFill*(c: Pixel, x, y: int) = CORE.canvas.floodFill(c, x, y)
 proc drawPixel*(c: Pixel, x, y: int) = CORE.canvas.drawPixel(c, x, y)
@@ -325,3 +366,10 @@ proc dissolve*(amount: int, seed: uint) = CORE.canvas.dissolve(amount, seed)
 proc wave*(src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int) = CORE.canvas.wave(src, amountX, amountY, scaleX, scaleY, offsetX, offsetY)
 proc displace*(src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int) = CORE.canvas.displace(src, map, channelX, channelY, scaleX, scaleY)
 proc blur*(src: Buffer, radiusx, radiusy: int) = CORE.canvas.blur(src, radiusx, radiusy)
+
+# FONT
+# proc fontFromDefault*(ptsize: float=DEFAULT_FONT_SIZE): Font =
+#   newFontString(DEFAULT_FONT_DATA, ptsize)
+
+
+setup()

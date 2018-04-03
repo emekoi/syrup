@@ -26,6 +26,16 @@ type
   #   BUFFER,
   #   PROC
 
+template lerp[T](a, b, p: T): T =
+  (1 - p) * a + p * b
+
+proc lerp*(fm, to: Pixel, t: float): Pixel =
+  result.rgba.r = lerp(fm.rgba.r.float, to.rgba.r.float, t).uint8
+  result.rgba.g = lerp(fm.rgba.g.float, to.rgba.g.float, t).uint8
+  result.rgba.b = lerp(fm.rgba.b.float, to.rgba.b.float, t).uint8
+  result.rgba.a = lerp(fm.rgba.a.float, to.rgba.a.float, t).uint8
+
+
   # DrawListItem = object
   #   case kind: DrawListType
   #   of DrawListType.LINE:

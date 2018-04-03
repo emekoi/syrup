@@ -7,8 +7,8 @@
  * 	1.00 (2015-11-03) initial release
  *
  * Basic usage:
- *	char *frame = new char[128*128*4]; // 4 component. RGBX format, where X is unused
- *	jo_gif_t gif = jo_gif_start("foo.gif", 128, 128, 0, 32);
+ *	char *frame = new char[128*128*4]; // 4 component. RGBX format, where X is unused 
+ *	jo_gif_t gif = jo_gif_start("foo.gif", 128, 128, 0, 32); 
  *	jo_gif_frame(&gif, frame, 4, false); // frame 1
  *	jo_gif_frame(&gif, frame, 4, false); // frame 2
  *	jo_gif_frame(&gif, frame, 4, false); // frame 3, ...
@@ -34,10 +34,10 @@ typedef struct {
 
 // width/height	| the same for every frame
 // repeat       | 0 = loop forever, 1 = loop once, etc...
-// palSize		| must be power of 2 - 1. so, 255 not 256.
+// palSize		  | must be power of 2 - 1. so, 255 not 256.
 extern jo_gif_t jo_gif_start(const char *filename, short width, short height, short repeat, int palSize);
 
-// gif			| the state (returned from jo_gif_start)
+// gif			    | the state (returned from jo_gif_start)
 // rgba         | the pixels
 // delayCsec    | amount of time in between frames (in centiseconds)
 // localPalette | true if you want a unique palette generated for this frame (does not effect future frames)
@@ -89,7 +89,7 @@ static void jo_gif_quantize(unsigned char *rgba, int rgbaSize, int sample, unsig
 	for(int i = 0; i < numColors; ++i) {
 		// Put nurons evenly through the luminance spectrum.
 		network[i][0] = network[i][1] = network[i][2] = (i << 12) / numColors;
-		freq[i] = intbias / numColors;
+		freq[i] = intbias / numColors; 
 	}
 	// Learn
 	{
@@ -124,10 +124,10 @@ static void jo_gif_quantize(unsigned char *rgba, int rgbaSize, int sample, unsig
 			int b = rgba[pix + 2] << 4;
 			int j = -1;
 			{
-				// finds closest neuron (min dist) and updates freq
-				// finds best neuron (min dist-bias) and returns position
-				// for frequently chosen neurons, freq[k] is high and bias[k] is negative
-				// bias[k] = gamma*((1/numColors)-freq[k])
+				// finds closest neuron (min dist) and updates freq 
+				// finds best neuron (min dist-bias) and returns position 
+				// for frequently chosen neurons, freq[k] is high and bias[k] is negative 
+				// bias[k] = gamma*((1/numColors)-freq[k]) 
 
 				int bestd = 0x7FFFFFFF, bestbiasd = 0x7FFFFFFF, bestpos = -1;
 				for (int k = 0; k < numColors; k++) {
@@ -240,7 +240,7 @@ static void jo_gif_lzw_encode(unsigned char *in, int len, FILE *fp) {
 
 	int free_ent = 0x102;
 	int ent = *in++;
-CONTINUE:
+CONTINUE: 
 	while (--len) {
 		int c = *in++;
 		int fcode = (c << 12) + ent;
@@ -321,7 +321,7 @@ void jo_gif_frame(jo_gif_t *gif, unsigned char * rgba, short delayCsec, int loca
 	unsigned char localPalTbl[0x300];
 	unsigned char *palette = gif->frame == 0 || !localPalette ? gif->palette : localPalTbl;
 	if(gif->frame == 0 || localPalette) {
-		jo_gif_quantize(rgba, size*4, 1, palette, gif->numColors);
+		jo_gif_quantize(rgba, size*4, 1, palette, gif->numColors);		
 	}
 
 	unsigned char *indexedPixels = (unsigned char *)malloc(size);
@@ -346,16 +346,16 @@ void jo_gif_frame(jo_gif_t *gif, unsigned char * rgba, short delayCsec, int loca
 			int diff[3] = { ditheredPixels[k+0] - palette[indexedPixels[k/4]*3+0], ditheredPixels[k+1] - palette[indexedPixels[k/4]*3+1], ditheredPixels[k+2] - palette[indexedPixels[k/4]*3+2] };
 			// Floyd-Steinberg Error Diffusion
 			// TODO: Use something better -- http://caca.zoy.org/study/part3.html
-			if(k+4 < size*4) {
-				ditheredPixels[k+4+0] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+0]+(diff[0]*7/16), 0, 255);
-				ditheredPixels[k+4+1] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+1]+(diff[1]*7/16), 0, 255);
-				ditheredPixels[k+4+2] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+2]+(diff[2]*7/16), 0, 255);
+			if(k+4 < size*4) { 
+				ditheredPixels[k+4+0] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+0]+(diff[0]*7/16), 0, 255); 
+				ditheredPixels[k+4+1] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+1]+(diff[1]*7/16), 0, 255); 
+				ditheredPixels[k+4+2] = (unsigned char)jo_gif_clamp(ditheredPixels[k+4+2]+(diff[2]*7/16), 0, 255); 
 			}
-			if(k+width*4+4 < size*4) {
+			if(k+width*4+4 < size*4) { 
 				for(int i = 0; i < 3; ++i) {
-					ditheredPixels[k-4+width*4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k-4+width*4+i]+(diff[i]*3/16), 0, 255);
-					ditheredPixels[k+width*4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k+width*4+i]+(diff[i]*5/16), 0, 255);
-					ditheredPixels[k+width*4+4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k+width*4+4+i]+(diff[i]*1/16), 0, 255);
+					ditheredPixels[k-4+width*4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k-4+width*4+i]+(diff[i]*3/16), 0, 255); 
+					ditheredPixels[k+width*4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k+width*4+i]+(diff[i]*5/16), 0, 255); 
+					ditheredPixels[k+width*4+4+i] = (unsigned char)jo_gif_clamp(ditheredPixels[k+width*4+4+i]+(diff[i]*1/16), 0, 255); 
 				}
 			}
 		}

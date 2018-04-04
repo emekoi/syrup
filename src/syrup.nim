@@ -371,5 +371,5 @@ proc blur*(src: Buffer, radiusx, radiusy: int) = CORE.canvas.blur(src, radiusx, 
 # proc fontFromDefault*(ptsize: float=DEFAULT_FONT_SIZE): Font =
 #   newFontString(DEFAULT_FONT_DATA, ptsize)
 
-
-setup()
+if CORE == nil:
+  setup()

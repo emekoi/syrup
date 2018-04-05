@@ -95,8 +95,8 @@ when defined(SYRUP_GL):
     gl.deleteBuffers([handle.ebo, handle.vbo])
     gl.deleteVertexArray(handle.vao)
     gl.deleteTexture(handle.tex)
-  
-proc setup() =
+
+proc init_syrup() =
   new(CORE, finalize)
   when defined(SYRUP_GL):
     new(CORE.handle, finalize)
@@ -163,6 +163,13 @@ proc setup() =
 
   mixer.init()
   CORE.running = true
+
+when defined(SYRUP_EXPORT_SETUP):
+  proc setup*() =
+    init_syrup()
+else:
+  proc setup() =
+    init_syrup()
 
 proc run*(update: proc(dt: float), draw: proc()) =
   var last = 0.0
@@ -371,5 +378,6 @@ proc blur*(src: Buffer, radiusx, radiusy: int) = CORE.canvas.blur(src, radiusx, 
 # proc fontFromDefault*(ptsize: float=DEFAULT_FONT_SIZE): Font =
 #   newFontString(DEFAULT_FONT_DATA, ptsize)
 
-if CORE == nil:
-  setup()
+when not defined(SYRUP_EXPORT_SETUP):
+  if CORE == nil:
+    setup()

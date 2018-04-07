@@ -9,8 +9,7 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 0.17.2"
-requires "suffer >= 0.1.0"
-requires "sdl2_nim >= 2.0.7.0"
+requires "nim_glfw#head"
 requires "opengl >= 1.1.0"
 requires "glm >= 1.0.2"
 

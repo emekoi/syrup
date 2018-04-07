@@ -7,6 +7,7 @@
 
 import opengl, glm
 export opengl, glm
+
 type
   BufferId* = distinct GLuint
   VertexArrayId* = distinct GLuint

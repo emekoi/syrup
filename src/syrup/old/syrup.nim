@@ -8,12 +8,21 @@
 # when not defined(MODE_RGBA):
   # {.fatal: "compile syrup with the flag MODE_RGBA".}
 import
-  glfw, glfw/wrapper, os, tables,
-  syrup/[embed, shader, gl]
+  sdl2/sdl, suffer, os, tables,
+  syrup/[timer, embed, shader, gl, mixer],
+  syrup/[system, input]
   
+export
+  suffer,
+  timer,
+  shader,
+  mixer,
+  system
+  # gifwriter
 
 type
   GLHandle = ref object
+    context*: sdl.GLContext
     vbo*: gl.BufferId
     vao*: gl.VertexArrayId
     ebo*: gl.BufferId
@@ -22,8 +31,10 @@ type
 
   Context = ref object
     running*: bool
-    window*: glfw.Window
+    window*: sdl.Window
+    context: sdl.GLContext
     handle: GLHandle
+    canvas*: Buffer
 
 type Config* = tuple
   title: string
@@ -31,6 +42,7 @@ type Config* = tuple
   fullscreen: bool
   resizable: bool
   bordered: bool
+  clear: Pixel
   fps: float
 
 let
@@ -45,17 +57,22 @@ let
     0, 1, 2, 3,
   ]
 
+let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
+
 var
   CORE: Context
   SETTINGS: Config = (
     "syrup", 512, 512,
     false, false, true,
-    60.0
+    color(255, 255, 255), 60.0,
   )
   
 proc finalize(ctx: Context) =
-  ctx.window.destroy()
-  glfw.terminate()
+  mixer.deinit()
+  ctx.window.destroyWindow()
+  when defined(SYRUP_GL):
+    ctx.context.glDeleteContext()
+  sdl.quit()
 
 proc finalize(handle: GLHandle) =
   gl.deleteBuffers([handle.ebo, handle.vbo])
@@ -66,15 +83,40 @@ proc setup() =
   new(CORE, finalize)
   new(CORE.handle, finalize)
 
-  glfw.initialize()
+  var flags = 0'u32
 
-  var c = glfw.DefaultOpenglWindowConfig
-  c.title = SETTINGS.title
-  c.version = glv21
-  c.doubleBuffer = true
+  if sdl.init(sdl.INIT_VIDEO) != 0:
+    quit "ERROR: can't initialize SDL video: " & $sdl.getError()
+
+  if sdl.glSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 2) != 0:
+    quit "ERROR: unable set GL_CONTEXT_MAJOR_VERSION attribute: " & $sdl.getError()
+
+  if sdl.glSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 1) != 0:
+    quit "ERROR: unable set GL_CONTEXT_MINOR_VERSION attribute: " & $sdl.getError()
+
+  if sdl.glSetAttribute(sdl.GL_DOUBLEBUFFER, GL_TRUE.cint) != 0:
+    quit "ERROR: unable set GL_DOUBLEBUFFER attribute: " & $sdl.getError()
+  
+  if sdl.glSetAttribute(sdl.GL_ACCELERATED_VISUAL, 1) != 0:
+    quit "ERROR: unable set GL_ACCELERATED_VISUAL attribute: " & $sdl.getError()
+  
+  flags = sdl.WINDOW_OPENGL
 
   # Create window
-  CORE.window = glfw.newWindow(c)
+  CORE.window = sdl.createWindow(
+    SETTINGS.title,
+    sdl.WindowPosUndefined,
+    sdl.WindowPosUndefined,
+    SETTINGS.width, SETTINGS.height,
+    flags)
+
+  if CORE.window == nil:
+    quit "ERROR: can't create window: " & $sdl.getError()
+
+  CORE.context = sdl.glCreateContext(CORE.window)
+
+  if CORE.context == nil:
+    quit "ERROR: can't create OpenGL context: " & $sdl.getError()
 
   loadExtensions()
 
@@ -96,9 +138,10 @@ proc setup() =
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MIN_FILTER, GL_NEAREST)
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAG_FILTER, GL_NEAREST)
-  
-  gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f)
 
+  CORE.canvas = newBuffer(SETTINGS.width, SETTINGS.height)
+
+  mixer.init()
   CORE.running = true
 
 proc run*(update: proc(dt: float), draw: proc()) =
@@ -107,31 +150,39 @@ proc run*(update: proc(dt: float), draw: proc()) =
   var updateFunc = update
   var drawFunc = draw
 
-  while CORE.running and not glfw.shouldClose(CORE.window):
-    glfw.pollEvents()
+  while CORE.running:
+    for e in system.poll():
+      if e.id == system.QUIT:
+        CORE.running = false
+      input.onEvent(e)
+
+    timer.step()
 
     if updateFunc != nil:
-      updateFunc(0.0)
+      updateFunc(timer.getDelta())
 
     # clear the screen
-    gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT)
+    gl.clearColor(0.0f, 0.0f, 0.0f, 1.0f);    
+    gl.clear(BufferMask.DEPTH_BUFFER_BIT, BufferMask.COLOR_BUFFER_BIT);
+    CORE.canvas.clear(SETTINGS.clear)
 
     # run the draw callback
     if drawFunc != nil:
       drawFunc()
 
+    input.reset()
+
     # draw the buffer to the screen
     # let buf = CORE.canvas
     # gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, buf.w, buf.h,
     #   PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, buf.pixels)
-    # gl.drawElements(gl.DrawMode.QUADS, 4, IndexType.UNSIGNED_INT, 0)
-    glfw.swapBuffers(CORE.window)
+    gl.drawElements(gl.DrawMode.QUADS, 4, IndexType.UNSIGNED_INT, 0)
+    sdl.glSwapWindow(CORE.window)
 
     # wait for next frame
     let step = 1.0 / SETTINGS.fps
-    
-    let now = glfw.getTime()
-    let wait = step - (now - last)
+    let now = sdl.getTicks().float / 1000.0
+    let wait = step - (now - last);
     last += step
     if wait > 0:
       sleep((wait * 1000.0).int)
@@ -141,7 +192,4 @@ proc run*(update: proc(dt: float), draw: proc()) =
 proc exit*() =
   CORE.running = false
 
-
-
-setup()
-run(nil, nil)
+include globals

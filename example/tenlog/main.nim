@@ -45,6 +45,6 @@ proc draw() =
     y = 0
 
   setColor color(r, g, b)
-  drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
+  # drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
 
 syrup.run(update, draw)

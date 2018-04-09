@@ -10,7 +10,7 @@
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}
 
-import texture
+import texture, gl
 
 
 type
@@ -94,5 +94,12 @@ proc render*(font: Font, txt: string): Texture =
   # Load bitmap and free intermediate 8bit bitmap
   var pixels = newSeq[byte](w * h)
   copyMem(pixels[0].addr, bitmap, w * h * sizeof(byte))
-  # result = newBuffer(w, h)
+  
+  # we need to load the a bitmap into opengl :(
+  result = newTexture(w, h)
+  result.bindTexture()
+  gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, w, h,
+        PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, pixels)
+  gl.generateMipMap(MipmapTarget.TEXTURE_2D)
+  result.unbindTexture()
   # result.loadPixels8(pixels)

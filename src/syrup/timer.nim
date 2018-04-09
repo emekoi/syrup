@@ -6,7 +6,7 @@
 ##
 
 import
-  sdl2/sdl,
+  glfw,
   math
 
 var
@@ -21,10 +21,10 @@ proc getNow*(): float =
   0.0
 
 proc getTime*(): float =
-  sdl.getTicks().float / 1000.float
+  glfw.getTime()
 
 proc step*() =
-  let now = sdl.getTicks().float / 1000.float
+  let now = glfw.getTime()
   if last == 0: last = now
   delta = now - last
   last = now

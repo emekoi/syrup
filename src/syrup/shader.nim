@@ -11,19 +11,20 @@ type Shader* = ref object
   program*: gl.ShaderProgramId
   vertLog*, fragLog*, progLog*: string
 
+proc `$`(s: ShaderType): string = repr s
+
 proc compileAndAttachShader(shaderType: ShaderType, shaderSource: string, programId: ShaderProgramId): ShaderId =    
   let shaderId = gl.createShader(shaderType)
   gl.shaderSource(shaderId, shaderSource)
   gl.compileShader(shaderId)
   if not gl.getShaderCompileStatus(shaderId):
-      raise newException(Exception, "Shader Compile Error:\n" & gl.getShaderInfoLog(shaderId))
+      raise newException(Exception, $shaderType & " Compile Error:\n" & gl.getShaderInfoLog(shaderId))
   else:
       gl.attachShader(programId, shaderId)
   shaderId
 
 proc finalizer(s: Shader) =
-  if s != nil:
-    gl.deleteProgram(s.program)
+  gl.deleteProgram(s.program)
 
 proc createAndLinkProgram(vertexSource:string, fragmentSource:string): Shader =
   new result, finalizer   
@@ -35,7 +36,8 @@ proc createAndLinkProgram(vertexSource:string, fragmentSource:string): Shader =
   gl.linkProgram(result.program)    
 
   if not gl.getProgramLinkStatus(result.program):
-    raise newException(Exception, "Shader Link Error:\n" & gl.getProgramInfoLog(result.program))
+    let msg = "Shader Link Error:\n" & gl.getProgramInfoLog(result.program)
+    raise newException(Exception, msg)
 
   result.vertLog = $vert.getShaderInfoLog()
   result.fragLog = $frag.getShaderInfoLog()
@@ -56,24 +58,19 @@ proc newShaderFromMem*(fragmentSource:string): Shader =
 proc newShaderFromMem*(vertexSource, fragmentSource:string): Shader =
   result = createAndLinkProgram(vertexSource, fragmentSource)
 
-proc setAttribute*(shader: Shader, name: string, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
+proc setAttribute*(shader: Shader, T: typedesc[SomeNumber], name: string, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
   let attrib = gl.getAttribLocation(shader.program, name)
-  gl.vertexAttribPointer(attrib.uint32, size, kind, normal, stride, p)
+  gl.vertexAttribPointer(attrib.uint32, size, kind, normal, stride * sizeof(T), p * sizeof(T))
   gl.enableVertexAttribArray(attrib.uint32)
 
-proc setAttribute*(shader: Shader, location: uint32, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
-  gl.vertexAttribPointer(location, size, kind, normal, stride, p)
-  gl.enableVertexAttribArray(location)  
+proc setAttribute*(shader: Shader, T: typedesc[SomeNumber], location: uint32, size: int, kind: VertexAttribType, normal: bool, stride: int, p: int) =
+  gl.vertexAttribPointer(location, size, kind, normal, stride * sizeof(T), p * sizeof(T))
+  gl.enableVertexAttribArray(location)
 
 # proc use*(shader: Shader) =
 #   gl.use(shader.program)
-#   shader.setAttribute("sp_Position", 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 0)
-#   shader.setAttribute("sp_TexCoord", 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 4 * sizeof(float32))
-
-proc use*(shader: Shader) =
-  gl.use(shader.program)
-  shader.set_attribute(0, 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 0)                   # position
-  shader.set_attribute(1, 4, VertexAttribType.FLOAT, false, 8 * sizeof(float32), 4 * sizeof(float32)) # tex coords
+#   shader.setAttribute(float32, "sp_Position", 2, VertexAttribType.FLOAT, false, 8, 0)
+#   shader.setAttribute(float32, "sp_TexCoord", 2, VertexAttribType.FLOAT, false, 8, 4)
 
 proc setBool*(shader: Shader, name: string, value: bool) =
   gl.setBool(shader.program, name, value)

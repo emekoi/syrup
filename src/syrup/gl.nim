@@ -852,6 +852,9 @@ template texParameteri*(target:TextureTarget, pname:TextureParameter, param:GLin
 template texImage2D*[T](target:TexImageTarget, level:int32, internalFormat:TextureInternalFormat, width:int32, height:int32, format:PixelDataFormat, pixelType:PixelDataType, data: openArray[T] )  =
   glTexImage2D(target,level,internalFormat,width,height,0,format,pixelType,data[0].unsafeAddr)
 
+template texImage2D*(target:TexImageTarget, level:int32, internalFormat:TextureInternalFormat, width:int32, height:int32, format:PixelDataFormat, pixelType:PixelDataType, data: pointer )  =
+  glTexImage2D(target,level,internalFormat,width,height,0,format,pixelType,data)
+
 # for cases where data is null, just don't pass it in
 template texImage2D*(target:TexImageTarget, level:int32, internalFormat:TextureInternalFormat, width:int32, height:int32, format:PixelDataFormat, pixelType:PixelDataType) =
   glTexImage2D(target,level,internalFormat,width,height,0,format,pixelType,nil)

@@ -95,7 +95,6 @@ proc exit*() =
 
 proc resetVideoMode() =
   CORE.window.size = (SETTINGS.width, SETTINGS.height)
-  GC_unref(CORE.gfx)
   CORE.gfx = newRenderer(SETTINGS.width, SETTINGS.height)
   
 proc getConfig*(): Config =

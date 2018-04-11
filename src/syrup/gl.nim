@@ -713,39 +713,19 @@ template genBindBufferData*[T](target:BufferTarget, data:openarray[T], usage:Buf
   glBufferData(target,GLsizeiptr(data.len*T.sizeof()),data[0].unsafeAddr,usage)
   buffer.BufferId
 
-template deleteBuffer*(buffer:BufferId) =
-  var b = buffer
-  glDeleteBuffers(1,b.addr)
+# generate, bind, and set buffer data in one go
+template genBindBufferData*[T](target:BufferTarget, data:ptr[T], usage:BufferDataUsage) :BufferId   =
+  var buffer : GLuint
+  glGenBuffers(1,addr buffer)
+  glBindBuffer(target,buffer)
+  glBufferData(target,GLsizeiptr(T.sizeof()),data,usage)
+  buffer.BufferId
 
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
-###################################################
+template deleteBuffer*(buffer:BufferId) =
+  glDeleteBuffers(1,cast[ptr GLUint](buffer.addr))
+
 template deleteBuffers*(buffers:openArray[BufferId]) =
-  let p = buffers[0]
-  glDeleteBuffers(buffers.len,cast[ptr GLUint](p.unsafeAddr))
+  glDeleteBuffers(buffers.len,cast[ptr GLUint](buffers[0].unsafeAddr))
 
 template bufferSubData*[T](target:BufferTarget,offset:int,size:int,data:openarray[T]) =
   glBufferSubData(target,offsetptr, sizeptr, data[0].unsafeAddr)

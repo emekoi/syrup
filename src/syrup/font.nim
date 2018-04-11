@@ -41,7 +41,7 @@ proc getHeight*(font: Font): int
 proc getWidth*(font: Font, txt: string): int
   ## gets the width of `str` rendered in the font
 proc render*(font: Font, txt: string): Texture
-  ## creates a new Buffer with `txt` rendered on it using `font`
+  ## creates a new Texture with `txt` rendered on it using `font`
 
 {.push cdecl, importc.}
 proc ttf_new(data: pointer, len: cint): ptr ttf_Font
@@ -92,14 +92,16 @@ proc render*(font: Font, txt: string): Texture =
   if bitmap == nil:
     raise newException(FontError, "could not render text")
   # Load bitmap and free intermediate 8bit bitmap
-  var pixels = newSeq[byte](w * h)
-  copyMem(pixels[0].addr, bitmap, w * h * sizeof(byte))
-  
-  # we need to load the a bitmap into opengl :(
+  var
+    tmp = newSeq[byte](w * h)
+    pixelData = newSeq[uint32](w * h)
+  copyMem(tmp[0].addr, bitmap, w * h * sizeof(byte))
+  for i in 0..<(w * h):
+    pixelData[i] = tmp[i].uint32
+  # we need to load the a bitmap into opengl
   result = newTexture(w, h)
-  result.bindTexture()
+  result.enable()
   gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, w, h,
-        PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, pixels)
-  gl.generateMipMap(MipmapTarget.TEXTURE_2D)
-  result.unbindTexture()
+        PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, pixelData)
+  result.disable()
   # result.loadPixels8(pixels)

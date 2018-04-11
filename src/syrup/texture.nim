@@ -10,18 +10,20 @@
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}
 
-import shader, gl, embed
+import shader, gl, embed, types
+
+const RGB_MASK = 0x00FFFFFF'u32
 
 type
   TextureError* = object of Exception
 
-  Color* = tuple
-    r, g, b, a: float32
+  # Color* = tuple
+  #   r, g, b, a: float32
 
-  BlendingMode = tuple
-    src_factor, dst_factor: BlendFactor
-    blend_equation: BlendEquationEnum
-    aplha_mult: bool
+  # BlendingMode = tuple
+  #   src_factor, dst_factor: BlendFactor
+  #   blend_equation: BlendEquationEnum
+  #   aplha_mult: bool
 
   # BlendMode* {.pure.} = enum
   #   # (src_factor, dst_factor, blend_func) 
@@ -34,10 +36,10 @@ type
   #   DARKEN = (BlendFactor.ONE, BlendFactor.ONE, BlendEquationEnum.MIN, false)
   #   SCREEN = ()
 
-  # DrawMode* = object
-  #   color*: Color
-  #   alpha*: uint8
-  #   blend*: BlendMode
+  DrawMode* = object
+    color*: Color
+    # alpha*: uint8
+    # blend*: BlendMode
 
   PixelFormat = enum
     RGB
@@ -45,82 +47,23 @@ type
 
   Texture* = ref object
     id: gl.TextureId
-    width*, height*: int32
-    slot*: uint32
+    vao*: gl.VertexArrayId
+    vbo, ebo: Buffer
     fmt: PixelFormat
+    slot: uint32
+    width*, height*: int32
+    mode: DrawMode
+    quad: Quad
+    
 
-
-
-
-
-#   let alpha = (s.rgba.a.int * m.alpha.int) shr 8
-#   var s = s
-#   if alpha <= 1: return
-#   # Color
-#   if m.color.word != RGB_MASK:
-#     s.rgba.r = ((s.rgba.r.int * m.color.rgba.r.int) shr 8).uint8
-#     s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
-#     s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
-#   # Blend
-#   case m.blend
-#   of BLEND_ALPHA:
-#     discard
-#   of BLEND_COLOR:
-#     s = m.color
-#   of BLEND_ADD:
-#     s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
-#     s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
-#     s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
-#   of BLEND_SUBTRACT:
-#     s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
-#     s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
-#     s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
-#   of BLEND_MULTIPLY:
-#     s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
-#     s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
-#     s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
-#   of BLEND_LIGHTEN:
-#     s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
-#           d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-#   of BLEND_DARKEN:
-#     s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
-#           d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-#   of BLEND_SCREEN:
-#     s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
-#     s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
-#     s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
-#   of BLEND_DIFFERENCE:
-#     s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
-#     s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
-#     s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
-#   # Write
-#   if alpha >= 254:
-#     d[] = s
-#   elif d.rgba.a >= 254'u8:
-#     d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
-#     d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
-#     d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
-#   else:
-#     let
-#       a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
-#       z = (d.rgba.a.int * (0xff - alpha)) shr 8
-#     d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
-#     d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
-#     d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
-#     d.rgba.a = a.uint8
-
-
-
-
-
-
-
-
-proc newTextureBlank*(width, height: int32, slot: uint32=0): Texture
+proc newTexture*(width, height: int32, slot: uint32=0): Texture
 proc newTextureFromFile*(filename: string, slot: uint32=0): Texture
 proc newTextureFromString*(str: string, slot: uint32=0): Texture
-proc bindTexture*(t: Texture)
-proc unbindTexture*(t: Texture)
+proc setColor*(t: Texture, c: Color)
+proc getColor*(t: Texture): Color
+proc enable*(t: Texture)
+proc disable*(t: Texture)
+proc render*(t: Texture)
 
 proc stbi_failure_reason_c(): cstring
   {.cdecl, importc: "stbi_failure_reason".}
@@ -143,34 +86,102 @@ proc stbi_load(
 ): ptr cuchar
 {.pop.}
 
+# let TEXTURE_EBO = newBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, [
+#   0'u16, 1'u16, 2'u16,
+#   2'u16, 3'u16, 0'u16
+# ])
+
+template lerp[T](a, b, p: T): untyped =
+  ((1 - p) * a + p * b)
+
+template norm[T](a, b, v: T): untyped =
+  (v - a) / (b - a)
+
 proc finalize(t: Texture) =
-  t.unbindTexture()
+  gl.deleteVertexArray(t.vao)
   gl.deleteTexture(t.id)
 
-proc newTextureBlank*(width, height: int32, slot: uint32=0): Texture =
+proc calculate_vbo(t: Texture, x, y: int32) =
+  let
+    width = (t.width).float32
+    height = (t.height).float32
+    min_x = (t.quad.x).float32
+    min_y = (t.quad.y).float32
+    max_x = (t.quad.x + t.quad.w).float32
+    max_y = (t.quad.y + t.quad.h).float32
+    dx = norm(0.0f, 512.0f, x.float32)
+    dy = norm(0.0f, 512.0f, y.float32)
+    (tlox, tloy) = (-1.0f,  1.0f)
+    (trox, troy) = ( 1.0f,  1.0f)
+    (brox, broy) = ( 1.0f, -1.0f)
+    (blox, bloy) = (-1.0f, -1.0f)
+
+  if t.vbo != nil: GC_unref(t.vbo)
+
+  # t.vbo = newBuffer(BufferTarget.ARRAY_BUFFER, [
+  #   vertex(-1.0f,  1.0f,
+  #     norm(0.0f, width, min_x), norm(0.0f, height, min_y)), # Top-left
+  #   vertex( 1.0f,  1.0f,
+  #     norm(0.0f, width, max_x), norm(0.0f, height, min_y)), # Top-right
+  #   vertex( 1.0f, -1.0f,
+  #     norm(0.0f, width, max_x), norm(0.0f, height, max_y)), # Bottom-right
+  #   vertex(-1.0f, -1.0f,
+  #     norm(0.0f, width, min_x), norm(0.0f, height, max_y)), # Bottom-left
+  # ])
+
+  t.vbo = newBuffer(BufferTarget.ARRAY_BUFFER, [
+    vertex(tlox, tloy,
+      norm(0.0f, width, min_x), norm(0.0f, height, min_y)), # Top-left
+    vertex(trox, troy,
+      norm(0.0f, width, max_x), norm(0.0f, height, min_y)), # Top-right
+    vertex(brox, broy,
+      norm(0.0f, width, max_x), norm(0.0f, height, max_y)), # Bottom-right
+    vertex(blox, bloy,
+      norm(0.0f, width, min_x), norm(0.0f, height, max_y)), # Bottom-left
+  ])
+
+proc newTexture*(width, height: int32, slot: uint32=0): Texture =
   new(result, finalize)
   result.id = gl.genTexture()
+
   result.height = height
   result.width = width
   result.slot = slot
   result.fmt = PixelFormat.RGBA
- 
+  result.quad = quad(0, 0, width, height)
+
+  # generate opengl objects for rendering
+  result.vao = gl.genBindVertexArray()
+  result.calculate_vbo(0, 0)
+  result.ebo = newBuffer(BufferTarget.ELEMENT_ARRAY_BUFFER, [
+    0'u16, 1'u16, 2'u16,
+    2'u16, 3'u16, 0'u16
+  ])
+
 # bind texture, load data, generate mipmaps, then unbind the texture and free the image data
 proc loadTexture(t: Texture, data: pointer, bpp: cint) =
-  t.bindTexture()
+  t.enable()
   t.fmt = if bpp == 4: PixelFormat.RGBA else: PixelFormat.RGB
   gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA, t.width, t.height,
     succ(PixelDataFormat.RGB, ord(t.fmt)), PixelDataType.UNSIGNED_BYTE, data)
   gl.generateMipMap(MipmapTarget.TEXTURE_2D)
   stbi_image_free(data)
-  t.unbindTexture()
+  t.disable()
+
+proc newTextureFromMem*(width, height: int32, data: openarray[uint32], slot: uint32=0): Texture =
+  result = newTexture(width, height, slot)
+  result.enable()
+  gl.texImage2D(TexImageTarget.TEXTURE_2D, 0, TextureInternalFormat.RGBA,
+    width, height, PixelDataFormat.RGBA, PixelDataType.UNSIGNED_BYTE, data)
+  gl.generateMipMap(MipmapTarget.TEXTURE_2D)
+  result.disable()
 
 # load data, pass it through stb and call load image on the data
 proc newTextureFromFile*(filename: string, slot: uint32=0): Texture =
   var width, height, bpp: cint
   let pixelData = stbi_load(filename.cstring, width, height, bpp, 4)
   if pixelData == nil: raise newException(TextureError, stbi_failure_reason())
-  result = newTextureBlank(width, height, slot)
+  result = newTexture(width, height, slot)
   result.loadTexture(pixelData, bpp)
 
 proc newTextureFromString*(str: string, slot: uint32=0): Texture =
@@ -180,13 +191,30 @@ proc newTextureFromString*(str: string, slot: uint32=0): Texture =
     pixelData = stbi_load_from_memory(data,
       str.len.cint, width, height, bpp, 4)
   if pixelData == nil: raise newException(TextureError, stbi_failure_reason())
-  result = newTextureBlank(width, height, slot)
+  result = newTexture(width, height, slot)
   result.loadTexture(pixelData, bpp)
 
+proc setColor*(t: Texture, c: Color) =
+  t.mode.color.r = c.r
+  t.mode.color.g = c.g
+  t.mode.color.b = c.b
+  t.mode.color.a = c.a
+
+proc getColor*(t: Texture): Color =
+  t.mode.color
+
+proc `quad=`*(t: Texture, q: Quad) =
+  t.quad = q
+  t.calculate_vbo(0, 0)
+
 # setup the texture for 2d rendering
-proc bindTexture*(t: Texture) =
+proc enable*(t: Texture) =
+  # enable buffers
+  t.vbo.enable()
+  t.ebo.enable()
+
   # set the texture slot so we bind to the right one
-  gl.activeTexture(succ(TextureUnit.TEXTURE0, t.slot.int))
+  gl.activeTexture(succ(TextureUnit.low(), t.slot.int))
   gl.bindTexture(TextureTarget.TEXTURE_2D, t.id)
 
   # texture config
@@ -198,7 +226,13 @@ proc bindTexture*(t: Texture) =
   gl.texParameteri(TextureTarget.TEXTURE_2D, TextureParameter.TEXTURE_MAX_LEVEL, 0)
 
 # this isn't needed apparently
-proc unbindTexture*(t: Texture) =
-  discard t # this is to look consistent
+proc disable*(t: Texture) =
   when defined(SYRUP_DEBUG):
     gl.unBindTexture(TextureTarget.TEXTURE_2D)
+    t.vbo.disable()
+    t.ebo.disable()
+
+proc render*(t: Texture) =
+  t.enable()
+  gl.drawElements(gl.DrawMode.TRIANGLES , t.ebo.count, IndexType.UNSIGNED_SHORT, 0)
+  t.disable()

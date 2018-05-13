@@ -6,6 +6,7 @@
 ##
 
 import ../../src/syrup
+import ../../src/syrup/[keyboard]
 import random, times, math
 
 setWindowTitle("10log")

@@ -7,23 +7,35 @@
 
 import system, tables
 
-var keysDown* = newTable[string, bool]()
-var keysPressed* = newTable[string, bool]()
 var buttonsDown* = newTable[string, bool]()
 var buttonsPressed* = newTable[string, bool]()
 var mousePos*: tuple[x, y: int]
 
 
+proc mouseDown*(buttons: varargs[string]): bool =
+  result = false
+  for b in buttons:
+    if buttonsDown.hasKey(b) and buttonsDown[b]:
+      return true
+
+
+proc mousePressed*(buttons: varargs[string]): bool =
+  result = false
+  for b in buttons:
+    if buttonsPressed.hasKey(b) and buttonsPressed[b]:
+      return true
+
+
+proc mouseReleased*(buttons: varargs[string]): bool =
+  mouseDown(buttons) and not mousePressed(buttons)
+
+
+proc mousePosition*(): (int, int) =
+  (mousePos.x, mousePos.y)
+
+
 proc onEvent(e: Event) =
   case e.id
-  of QUIT, NONE: discard
-  of RESIZE: discard
-  of KEYDOWN:
-    keysDown[e.key] = true
-    keysPressed[e.key] = true
-  of KEYUP:
-    keysDown[e.key] = false
-  of TEXTINPUT: discard
   of MOUSEMOVE:
     mousePos = (e.x, e.y)
   of MOUSEBUTTONDOWN:
@@ -31,11 +43,11 @@ proc onEvent(e: Event) =
     buttonsPressed[e.press.button] = true
   of MOUSEBUTTONUP:
     buttonsDown[e.press.button] = false
+  else: discard
 
 proc reset() =
-  for k, _ in keysPressed:
-    keysPressed[k] = false
   for k, _ in buttonsPressed:
     buttonsPressed[k] = false
 
 
+system.addEventHandler(onEvent)

@@ -28,6 +28,10 @@ type
     of MOUSEMOVE: x*, y*: int
     of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int]
 
+  EventHandler* = proc(e: Event)
+
+var eventHandlers: seq[EventHandler] = @[]
+
 
 converter buttonStr(id: int): string =
   case id
@@ -37,6 +41,11 @@ converter buttonStr(id: int): string =
   of sdl.BUTTON_X1: "wheelup"
   of sdl.BUTTON_X2: "wheeldown"
   else: "?"
+
+proc addEventHandler*(e: EventHandler) =
+  for p in eventHandlers:
+    if p == e: return
+  eventHandlers.add(e)
 
 
 proc poll*(): seq[Event] =
@@ -67,3 +76,8 @@ proc poll*(): seq[Event] =
 
     if event.id != NONE:
       result.add(event)
+
+
+proc update*(e: Event) =
+  for p in eventHandlers:
+    p(e)

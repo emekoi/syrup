@@ -9,9 +9,24 @@ import system, tables
 
 var keysDown* = newTable[string, bool]()
 var keysPressed* = newTable[string, bool]()
-var buttonsDown* = newTable[string, bool]()
-var buttonsPressed* = newTable[string, bool]()
-var mousePos*: tuple[x, y: int]
+
+
+proc keyDown*(keys: varargs[string]): bool =
+  result = false
+  for k in keys:
+    if keysDown.hasKey(k) and keysDown[k]:
+      return true
+
+
+proc keyPressed*(keys: varargs[string]): bool =
+  result = false
+  for k in keys:
+    if keysPressed.hasKey(k) and keysPressed[k]:
+      return true
+
+
+proc keyReleased*(keys: varargs[string]): bool =
+  keyPressed(keys) and not keyDown(keys)
 
 
 proc onEvent(e: Event) =
@@ -24,18 +39,12 @@ proc onEvent(e: Event) =
   of KEYUP:
     keysDown[e.key] = false
   of TEXTINPUT: discard
-  of MOUSEMOVE:
-    mousePos = (e.x, e.y)
-  of MOUSEBUTTONDOWN:
-    buttonsDown[e.press.button] = true
-    buttonsPressed[e.press.button] = true
-  of MOUSEBUTTONUP:
-    buttonsDown[e.press.button] = false
+  else: discard
+
 
 proc reset() =
   for k, _ in keysPressed:
     keysPressed[k] = false
-  for k, _ in buttonsPressed:
-    buttonsPressed[k] = false
 
 
+system.addEventHandler(onEvent)

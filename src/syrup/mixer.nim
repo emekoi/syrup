@@ -144,7 +144,7 @@ proc lockHandler(e: ptr Event) {.cdecl.} =
 {.pop.}
 
 
-proc init*(samplerate=44100, buffersize=1024) =
+proc init*(samplerate: int=44100, buffersize: uint=1024) =
   assert(not inited)
   
   if sdl.init(sdl.INIT_AUDIO) != 0:

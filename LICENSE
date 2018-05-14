@@ -37,13 +37,12 @@ src/syrup/mixer.nim
 . MIT license
 . https://github.com/rxi/cmixer_sdl2-nim
 
-src/syrup/gl.nim
-. a typesafe opengl wrapper for the nim language
-. MIT license
-. https://github.com/jackmott/easygl
-
 src/syrup/gifwriter.nim
 . A Nim library for writing animated GIFs
 . MIT license
 . https://github.com/rxi/gifwriter
 
+src/syrup/embed/default.ttf
+. A slick fixed-size typeface, for the building of quality video games and software projects.
+. Public domain
+. https://datagoblin.itch.io/monogram

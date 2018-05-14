@@ -5,7 +5,7 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import sdl2/sdl
+import sdl2/sdl, ../syrup
 
 {.passl: "-lm".}
 {.passc: "-DCM_USE_STB_VORBIS".}
@@ -166,6 +166,7 @@ proc init*(samplerate: int=44100, buffersize: uint=1024) =
 
   cm_init(cint(got.freq))
   setLock(lockHandler)
+  addQuitProc(deinit)
 
   device.pauseAudioDevice(0)
   inited = true
@@ -173,3 +174,5 @@ proc init*(samplerate: int=44100, buffersize: uint=1024) =
 
 proc deinit* =
   closeAudioDevice(device)
+
+mixer.init(syrup.getSampleRate(), syrup.getBufferSize())

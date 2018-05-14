@@ -6,11 +6,11 @@
 ##
 
 import ../../src/syrup
-import ../../src/syrup/[keyboard]
+import ../../src/syrup/[keyboard, graphics]
 import random, times, math
 
-setWindowTitle("10log")
-setWindowClear(color(0.15, 0.15, 0.2))
+syrup.setTitle("10log")
+graphics.clearColor = color(0.15, 0.15, 0.2)
 
 const step = 8
 
@@ -22,7 +22,7 @@ var
 frame.clear(pixel(255, 255, 255, 0))
 
 proc update(dt: float) =
-  if keyDown("escape"): exit()
+  if keyboard.keyDown("escape"): exit()
   elapsed += dt
 
 proc draw() =
@@ -45,7 +45,7 @@ proc draw() =
     x = 0
     y = 0
 
-  setColor color(r, g, b)
-  drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
+  graphics.setColor color(r, g, b)
+  graphics.drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
 
 syrup.run(update, draw)

@@ -79,5 +79,4 @@ proc poll*(): seq[Event] =
 
 
 proc update*(e: Event) =
-  for p in eventHandlers:
-    p(e)
+  for p in eventHandlers: p(e)

@@ -42,9 +42,8 @@ proc onEvent(e: Event) =
   else: discard
 
 
-proc reset() =
-  for k, _ in keysPressed:
-    keysPressed[k] = false
+proc reset*() =
+  for k, _ in keysPressed: keysPressed[k] = false
 
 
 system.addEventHandler(onEvent)

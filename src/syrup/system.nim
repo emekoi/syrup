@@ -43,9 +43,8 @@ converter buttonStr(id: int): string =
   else: "?"
 
 proc addEventHandler*(e: EventHandler) =
-  for p in eventHandlers:
-    if p == e: return
-  eventHandlers.add(e)
+  if e notin eventHandlers:
+    eventHandlers.add(e)
 
 
 proc poll*(): seq[Event] =

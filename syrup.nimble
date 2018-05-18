@@ -27,6 +27,18 @@ task docs, "generate documentation and place it in the docs folder":
 
 task example, "runs the included examples":
   for dir in listDirs("example"):
+    var
+      resFile = ""
+      mainFile = ""
+
     for file in listFiles(dir):
+      if file[^3..<file.len] == ".rc":
+        # resfile = file[0..<(file.len - 3)] & ".res"
+        # exec "windres " & file & " -O coff -o " & resfile
+        #var cmd = "nimble c -r --nimcache:example/nimcache --link:"
+        #exec cmd & resFile & " " & mainFile
+        var cmd = "nimble c -r --nimcache:example/nimcache "
+        exec cmd & mainFile
+
       if file[^8..<file.len] == "main.nim":
-        exec "nimble c -r --nimcache:example/nimcache " & file
+        mainFile = file

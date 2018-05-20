@@ -7,11 +7,7 @@
 
 import
   sdl2/sdl, suffer, os, tables,
-  syrup/[system, keyboard, mouse, timer, graphics]
-  
-export
-  timer,
-  system
+  syrup/[system, keyboard, mouse, time, graphics, debug]
 
 type
   Context = ref object
@@ -79,10 +75,10 @@ proc run*(update: proc(dt: float), draw: proc()) =
         CORE.running = false
       system.update(e)
 
-    timer.step()
+    time.step()
 
     if updateFunc != nil:
-      updateFunc(timer.getDelta())
+      updateFunc(time.getDelta())
 
     # clear the screen
     graphics.clear()
@@ -90,6 +86,9 @@ proc run*(update: proc(dt: float), draw: proc()) =
     # run the draw callback
     if drawFunc != nil:
       drawFunc()
+
+    # draw debug indicators
+    debug.drawIndicators()
 
     # reset input
     keyboard.reset()

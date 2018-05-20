@@ -7,7 +7,8 @@
 
 import
   sdl2/sdl,
-  math
+  math,
+  times
 
 var
   last = 0.0
@@ -18,7 +19,7 @@ var
   avgCount = 1.0
 
 proc getNow*(): float =
-  0.0
+  times.epochTime()
 
 proc getTime*(): float =
   sdl.getTicks().float / 1000.float
@@ -43,5 +44,5 @@ proc getDelta*(): float =
 proc getAverage*(): float =
   return average
 
-proc getFps*(): int32 =
-  return (1 / average + 0.5).floor().int32()
+proc getFps*(): int =
+  return (1 / average + 0.5).floor().int()

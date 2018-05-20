@@ -1,0 +1,104 @@
+##
+##  Copyright (c) 2017 emekoi
+## 
+##  This library is free software; you can redistribute it and/or modify it
+##  under the terms of the MIT license. See LICENSE for details.
+##
+
+import graphics, font, time, math
+
+type
+  IndicatorCallBack* = proc(): (string, SomeNumber)
+  Indicator* = proc()
+
+let
+  DEFAULT_FONT = font.fromDefault(32.0)
+  PADDING = 8
+
+var
+  inited = false
+  enabled = false
+  textRegionWidth = 20
+  indicators = newSeq[Indicator]()
+
+proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicator =
+  var
+    min = min
+    max = max
+    trueMin = min
+    trueMax = max
+    # get idx
+    indicatorIdx = 
+      if indicators.len == 0:
+        0
+      else:
+        indicators.len + 1
+    # Init
+    pad = 8
+    height = 26
+    maxBars = 16
+    barUpdatePeriod = 1
+    yoffset = pad + height * indicatorIdx
+    lastUpdate = time.getNow()
+    bars = newSeq[T](maxBars)
+    # create the display proc
+  result = proc() =
+    var (txt, val) = fn()
+    textRegionWidth = textRegionWidth.max(DEFAULT_FONT.getWidth(txt) + PADDING)
+    if time.getNow() > lastUpdate + barUpdatePeriod.float:
+      discard bars.pop()
+      bars.insert(val)
+      min = trueMin.min(bars.min())
+      max = trueMax.max(bars.max())
+      lastUpdate = time.getNow()
+    # draw text
+    var w = textRegionWidth
+    graphics.drawRect(
+      graphics.pixel(0.0, 0.0, 0.0, 0.8),
+      pad div 2, yoffset - (pad div 2),
+      w, height - 1
+    )
+    graphics.drawText(
+      DEFAULT_FONT, graphics.color(1.0, 1.0, 1.0),
+      txt, pad, yoffset - PADDING
+    )
+    # draw bars
+    graphics.drawRect(
+      graphics.pixel(0.0, 0.0, 0.0, 0.8),
+      pad div 2 + w + 1,
+      yoffset - (pad div 2),
+      73, height - 1
+    )
+    for i, v in bars.pairs():
+      var x = if min != max:
+        int(((bars[i] - min) / (max - min) * 16).floor())
+      else:
+        0
+      graphics.drawRect(
+        graphics.pixel(1.0, 1.0, 1.0, if i == 0: 1.0 else: 0.4),
+        pad div 2 + w + PADDING div 2 + (i - 1) * 4 + 5,
+        yoffset + 16 - x, 3, x
+      )
+
+proc drawIndicators*() =
+  if not enabled: return
+  graphics.reset()
+  for p in indicators: p()
+
+proc setVisible*(e: bool) =
+  enabled = e
+
+proc getVisible*(): bool =
+  enabled
+
+proc addIndicator*[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicator =
+  result = newIndicator(fn, min, max)
+  indicators.add(result)
+
+if not inited:
+  discard addIndicator(proc(): (string, int) =
+    var r = time.getFps()
+    ($r & "fps", r)
+  )
+  inited = true
+

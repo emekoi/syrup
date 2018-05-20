@@ -5,11 +5,11 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import suffer, embed
+import suffer, embed, font
 export suffer 
 
 let
-  DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
+  DEFAULT_FONT = font.fromDefault()
   canvas*: Buffer = newBuffer(1, 1)
 
 var

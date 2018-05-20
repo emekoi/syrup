@@ -7,5 +7,9 @@
 
 import suffer, embed
 
-proc fontFromDefault*(ptsize: float=DEFAULT_FONT_SIZE): Font =
+let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
+
+proc fromDefault*(ptsize: float): Font =
   newFontString(DEFAULT_FONT_DATA, ptsize)
+
+proc fromDefault*(): Font = DEFAULT_FONT

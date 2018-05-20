@@ -16,7 +16,7 @@ type
     surface*: sdl.Surface
     canvas_size: int
 
-  Config* = tuple
+  Config = tuple
     title: string
     width, height: int
     fullscreen: bool

@@ -32,7 +32,7 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
       if indicators.len == 0:
         0
       else:
-        indicators.len + 1
+        indicators.len
     # Init
     pad = 8
     height = 26
@@ -41,7 +41,7 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
     yoffset = pad + height * indicatorIdx
     lastUpdate = time.getNow()
     bars = newSeq[T](maxBars)
-    # create the display proc
+  # create the display proc
   result = proc() =
     var (txt, val) = fn()
     textRegionWidth = textRegionWidth.max(DEFAULT_FONT.getWidth(txt) + PADDING)

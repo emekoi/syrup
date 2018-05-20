@@ -10,7 +10,7 @@ import ../../src/syrup/[keyboard, graphics, debug]
 import random, times, math
 
 syrup.setTitle("10log")
-graphics.clearColor = color(0.15, 0.15, 0.0)
+graphics.clearColor = color(0.15, 0.15, 0.2)
 
 const step = 8
 

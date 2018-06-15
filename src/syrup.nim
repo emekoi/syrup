@@ -69,6 +69,8 @@ proc run*(update: proc(dt: float), draw: proc()) =
   var updateFunc = update
   var drawFunc = draw
 
+  when defined(useRealtimeGC):
+    GC_disable()
   while CORE.running:
     for e in system.poll():
       if e.id == system.QUIT:
@@ -103,8 +105,13 @@ proc run*(update: proc(dt: float), draw: proc()) =
     if CORE.window.updateWindowSurface() != 0:
       quit "ERROR: couldn't update screen: " & $sdl.getError()
 
-    # wait for next frame
     let step = 1.0 / SETTINGS.fps
+
+    when defined(useRealtimeGC):
+    # run the GC
+      GC_step((step * 1.0e6).int)
+
+    # wait for next frame
     let now = sdl.getTicks().float / 1000.0
     let wait = step - (now - last);
     last += step

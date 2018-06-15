@@ -5,6 +5,8 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
+const withRealTime = defined(useRealtimeGC)
+
 import ../../src/syrup
 import ../../src/syrup/[keyboard, graphics, debug]
 import random, times, math
@@ -21,6 +23,7 @@ var
 
 frame.clear(pixel(255, 255, 255, 0))
 debug.setVisible(true)
+echo withRealTime
 
 proc update(dt: float) =
   if keyboard.keyDown("escape"): exit()
@@ -49,4 +52,4 @@ proc draw() =
   graphics.setColor color(r, g, b)
   graphics.drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
 
-syrup.run(update, draw)
+syrup.run(update, nil)

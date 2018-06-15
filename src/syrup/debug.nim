@@ -5,7 +5,7 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import graphics, font, time, math
+import math, graphics, font, time
 
 type
   IndicatorCallBack* = proc(): (string, SomeNumber)
@@ -16,7 +16,6 @@ let
   PADDING = 8
 
 var
-  inited = false
   enabled = false
   textRegionWidth = 20
   indicators = newSeq[Indicator]()
@@ -95,10 +94,15 @@ proc addIndicator*[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicat
   result = newIndicator(fn, min, max)
   indicators.add(result)
 
-if not inited:
-  discard addIndicator(proc(): (string, int) =
-    var r = time.getFps()
-    ($r & "fps", r)
-  )
-  inited = true
+discard addIndicator(proc(): (string, int) =
+  var r = time.getFps()
+  ($r & "fps", r),
+  0
+)
+
+discard addIndicator(proc(): (string, int) =
+  var m = getOccupiedMem() div 1e3.int
+  ($m & "kb", m),
+  0
+)
 

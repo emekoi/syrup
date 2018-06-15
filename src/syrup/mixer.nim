@@ -144,6 +144,10 @@ proc lockHandler(e: ptr Event) {.cdecl.} =
 {.pop.}
 
 
+proc deinit* {.noconv.} =
+  closeAudioDevice(device)
+
+
 proc init*(samplerate: int=44100, buffersize: uint=1024) =
   assert(not inited)
   
@@ -171,8 +175,5 @@ proc init*(samplerate: int=44100, buffersize: uint=1024) =
   device.pauseAudioDevice(0)
   inited = true
 
-
-proc deinit* =
-  closeAudioDevice(device)
 
 mixer.init(syrup.getSampleRate(), syrup.getBufferSize())

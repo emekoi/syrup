@@ -47,13 +47,13 @@ proc newRenderer*(width, height: int32): Renderer =
 
   # generate our texture for drawing to
   # result.texture = texture.newTexture(width, height)
-  result.texture = texture.newTextureFromFile("syrup/embed/test.png")
+  result.texture = texture.newTextureFromFile("src/syrup/embed/test.png")
   result.texture.quad = quad(0, 0, 64, 64)
   # we need to enable the texture's vbo to create our shader
   result.texture.enable()
   
   # result.shader = newShaderFromMem(DEFAULT_FRAG_DATA)
-  let shader = newShaderFromFile("syrup/embed/default.vert", "syrup/embed/default.frag")
+  let shader = newShaderFromFile("src/syrup/embed/default.vert", "src/syrup/embed/default.frag")
   result.setShader(shader)
 
   result.texture.disable()

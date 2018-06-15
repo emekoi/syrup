@@ -65,6 +65,7 @@ proc run*(update: proc(dt: float), draw: proc()) =
   var updateFunc = update
   var drawFunc = draw
 
+  GC_disable()
   while not CORE.window.shouldClose():
     glfw.pollEvents()
     timer.step()
@@ -80,13 +81,17 @@ proc run*(update: proc(dt: float), draw: proc()) =
     
     CORE.window.swapBuffers()
 
-    # wait for next frame
+    # run the GC
     let step = 1.0 / SETTINGS.fps
+    GC_step((step * 1.0e6).int)
+
+    # wait for next frame
     let now = glfw.getTime()
     let wait = step - (now - last)
     last += step
     if wait > 0:
-      sleep((wait * 1000.0).int)
+      echo (wait * 1.0e3).int
+      sleep((wait * 1.0e3).int)
     else:
       last = now
 
@@ -96,13 +101,6 @@ proc exit*() =
 proc resetVideoMode() =
   CORE.window.size = (SETTINGS.width, SETTINGS.height)
   CORE.gfx = newRenderer(SETTINGS.width, SETTINGS.height)
-  
-proc getConfig*(): Config =
-  SETTINGS
-
-proc setConfig*(c: Config) =
-  SETTINGS = c
-  resetVideoMode()
 
 proc getWindowTitle*(): string =
   SETTINGS.title
@@ -166,7 +164,7 @@ proc windowSizeCb(w: Window not nil, size: tuple[w, h: int32]) =
 proc keyCbDebug(w: Window, key: Key, scanCode: int32, action: KeyAction, mods: set[ModifierKey]) =
 
   if key == keyR:
-    let shader = newShaderFromFile("syrup/embed/default.vert", "syrup/embed/default.frag")
+    let shader = newShaderFromFile("src/syrup/embed/default.vert", "src/syrup/embed/default.frag")
     CORE.gfx.setShader(shader)
 
   if action != kaUp and (key == keyEscape or key == keyF4 and mkAlt in mods):

@@ -5,18 +5,17 @@ author        = "emekoi"
 description   = "a game engine"
 license       = "MIT"
 srcDir        = "src"
-# bin          = @["syrup"]
+binDir        = "bin"
+bin           = @["syrup"]
+
 # Dependencies
 
 requires "nim >= 0.17.2"
-requires "nim_glfw#head"
+requires "glfw >= 0.3.1"
 requires "opengl >= 1.1.0"
 requires "glm >= 1.0.2"
 
-when defined(SYRUP_GL):
-  --define:MODE_RGBA
-elif hostOS == "linux":
-  --define:MODE_ARGB  
+# Tasks
 
 task docs, "generate documentation and place it in the docs folder":
   if not dirExists("docs"):
@@ -24,7 +23,6 @@ task docs, "generate documentation and place it in the docs folder":
   for file in listFiles(srcDir):
     if file[^4..<file.len] == ".nim":
       exec "nimble doc2 -o:docs/" & file[4..^5] & ".html " & file
-
 
 task example, "runs the included examples":
   for dir in listDirs("example"):

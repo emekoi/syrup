@@ -71,6 +71,7 @@ proc run*(update: proc(dt: float), draw: proc()) =
 
   when defined(useRealtimeGC):
     GC_disable()
+    
   while CORE.running:
     for e in system.poll():
       if e.id == system.QUIT:

@@ -42,6 +42,7 @@ converter buttonStr(id: int): string =
   of sdl.BUTTON_X2: "wheeldown"
   else: "?"
 
+
 proc addEventHandler*(e: EventHandler) =
   if e notin eventHandlers:
     eventHandlers.add(e)

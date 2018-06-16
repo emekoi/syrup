@@ -45,6 +45,7 @@ proc onEvent(e: Event) =
     buttonsDown[e.press.button] = false
   else: discard
 
+
 proc reset*() =
   for k, _ in buttonsPressed: buttonsPressed[k] = false
 

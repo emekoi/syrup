@@ -18,14 +18,11 @@ var
   avgAcc = 1.0
   avgCount = 1.0
 
-
 proc getNow*(): float =
   times.epochTime()
 
-
 proc getTime*(): float =
   sdl.getTicks().float / 1000.float
-
 
 proc step*() =
   let now = sdl.getTicks().float / 1000.float
@@ -41,14 +38,11 @@ proc step*() =
     avgCount = 0
     avgAcc = 0
 
-
 proc getDelta*(): float =
   return delta
 
-
 proc getAverage*(): float =
   return average
-
 
 proc getFps*(): int =
   return (1 / average + 0.5).floor().int()

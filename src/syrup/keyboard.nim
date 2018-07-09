@@ -10,13 +10,11 @@ import system, tables
 var keysDown* = newTable[string, bool]()
 var keysPressed* = newTable[string, bool]()
 
-
 proc keyDown*(keys: varargs[string]): bool =
   result = false
   for k in keys:
     if keysDown.hasKey(k) and keysDown[k]:
       return true
-
 
 proc keyPressed*(keys: varargs[string]): bool =
   result = false
@@ -24,10 +22,8 @@ proc keyPressed*(keys: varargs[string]): bool =
     if keysPressed.hasKey(k) and keysPressed[k]:
       return true
 
-
 proc keyReleased*(keys: varargs[string]): bool =
   keyPressed(keys) and not keyDown(keys)
-
 
 proc onEvent(e: Event) =
   case e.id
@@ -41,9 +37,7 @@ proc onEvent(e: Event) =
   of TEXTINPUT: discard
   else: discard
 
-
 proc reset*() =
   for k, _ in keysPressed: keysPressed[k] = false
-
 
 system.addEventHandler(onEvent)

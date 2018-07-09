@@ -13,7 +13,6 @@ import sdl2/sdl, ../syrup
 {.compile: "private/cmixer_impl.c".}
 {.compile: "private/stb_vorbis.c".}
 
-
 type
   cm_Source = object
 
@@ -75,17 +74,14 @@ proc pause*(src: ptr cm_Source) {.importc: "cm_pause".}
 proc stop*(src: ptr cm_Source) {.importc: "cm_stop".}
 {.pop.}
 
-
 converter toCSource*(source: Source): ptr cm_Source =
   source.csource
-
 
 proc finalizer(source: Source) =
   if source.csource != nil:
     cm_destroy_source(source.csource)
   if source.data != nil:
     GC_unref(source.data)
-
 
 proc wrap(s: ptr cm_Source): Source =
   if not inited:
@@ -98,19 +94,15 @@ proc wrap(s: ptr cm_Source): Source =
   new(result, finalizer)
   result.csource = s
 
-
 proc newSource*(info: SourceInfo): Source =
   var info = info
   cm_new_source(addr info).wrap()
 
-
 proc newSourceFromFile*(filename: string): Source =
   cm_new_source_from_file(filename).wrap()
 
-
 proc newSourceFromMem*(data: pointer; size: int): Source =
   result = cm_new_source_from_mem(data, int32(size)).wrap()
-
 
 proc newSourceFromMem*(data: string): Source =
   var data = data
@@ -118,13 +110,11 @@ proc newSourceFromMem*(data: string): Source =
   result.data = cast[ref RootObj](data)
   GC_ref(result.data)
 
-
 proc newSourceFromMem*(data: seq[uint8]): Source =
   var data = data
   result = newSourceFromMem(addr data[0], data.len)
   result.data = cast[ref RootObj](data)
   GC_ref(result.data)
-
 
 proc setLoop*(src: ptr cm_Source, loop: bool) =
   cm_set_loop(src, if loop: 1 else: 0)
@@ -134,7 +124,6 @@ proc audioCallback(userdata: pointer, stream: ptr uint8, len: cint) {.cdecl.} =
   process(cast[ptr cshort](stream), len div 2)
 {.pop.}
 
-
 {.push stackTrace: off.}
 proc lockHandler(e: ptr Event) {.cdecl.} =
   case e.kind:
@@ -143,10 +132,8 @@ proc lockHandler(e: ptr Event) {.cdecl.} =
   else: discard
 {.pop.}
 
-
 proc deinit* {.noconv.} =
   closeAudioDevice(device)
-
 
 proc init*(samplerate: int=44100, buffersize: uint=1024) =
   assert(not inited)
@@ -174,6 +161,5 @@ proc init*(samplerate: int=44100, buffersize: uint=1024) =
 
   device.pauseAudioDevice(0)
   inited = true
-
 
 mixer.init(syrup.getSampleRate(), syrup.getBufferSize())

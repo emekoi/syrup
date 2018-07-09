@@ -32,7 +32,6 @@ type
 
 var eventHandlers: seq[EventHandler] = @[]
 
-
 converter buttonStr(id: int): string =
   case id
   of sdl.BUTTON_LEFT: "left"
@@ -42,11 +41,9 @@ converter buttonStr(id: int): string =
   of sdl.BUTTON_X2: "wheeldown"
   else: "?"
 
-
 proc addEventHandler*(e: EventHandler) =
   if e notin eventHandlers:
     eventHandlers.add(e)
-
 
 proc poll*(): seq[Event] =
   result = @[]
@@ -76,7 +73,6 @@ proc poll*(): seq[Event] =
 
     if event.id != NONE:
       result.add(event)
-
 
 proc update*(e: Event) =
   for p in eventHandlers: p(e)

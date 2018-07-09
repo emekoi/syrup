@@ -11,7 +11,6 @@ import math, suffer
 {.passl: "-lm".}
 {.compile: "private/jo_gif.c".}
 
-
 type jo_gif_t = object
   fp: ptr FILE
   palette: array[0x00000300, cuchar]
@@ -29,7 +28,7 @@ type jo_gif_t = object
 proc jo_gif_start(filename: cstring; width: cshort; height: cshort; repeat: cshort;
                   palSize: cint): jo_gif_t
 
-##  gif			 | the state (returned from jo_gif_start)
+##  gif			     | the state (returned from jo_gif_start)
 ##  rgba         | the pixels
 ##  delayCsec    | amount of time in between frames (in centiseconds)
 ##  localPalette | true if you want a unique palette generated for this frame (does not effect future frames)
@@ -39,8 +38,6 @@ proc jo_gif_frame(gif: ptr jo_gif_t; rgba: ptr cuchar; delayCsec: cshort;
 ##  gif          | the state (returned from jo_gif_start)
 proc jo_gif_end(gif: ptr jo_gif_t)
 {.pop.}
-
-
 
 type
   GifState* {.pure.} = enum

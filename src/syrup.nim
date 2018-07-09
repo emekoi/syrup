@@ -189,5 +189,4 @@ proc setBufferSize*(buffersize: uint) =
 # proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
   # gifwriter.writeGif(gif, CORE.canvas, delay, localPalette)
 
-if CORE == nil:
-  setup()
+setup()

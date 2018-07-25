@@ -8,7 +8,6 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 0.17.2"
-requires "suffer >= 0.1.0"
 requires "sdl2_nim >= 2.0.7.0"
 
 task docs, "generate documentation and place it in the docs folder":

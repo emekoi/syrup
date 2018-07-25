@@ -4,7 +4,6 @@
 #  under the terms of the MIT license. See LICENSE for details.
 #
 
-{.deadCodeElim: on, optimization: speed.}
 {.compile: "private/stb_impl.c".}
 
 when defined(Posix) and not defined(haiku):

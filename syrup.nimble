@@ -10,8 +10,8 @@ bin           = @["syrup"]
 
 # Dependencies
 
-requires "nim >= 0.17.2"
-requires "glfw >= 0.3.1"
+requires "nim >= 0.18.0"
+requires "https://github.com/emekoi/nim-glfw >= 0.3.1"
 requires "opengl >= 1.1.0"
 requires "glm >= 1.0.2"
 

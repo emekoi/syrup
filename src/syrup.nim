@@ -31,7 +31,7 @@ var
     60.0
   )
 
-proc windowSizeCb(w: Window not nil, size: tuple[w, h: int32])
+proc windowSizeCb(w: Window, size: tuple[w, h: int32])
 proc keyCbDebug(w: Window, key: Key, scanCode: int32, action: KeyAction, mods: set[ModifierKey])
 
 proc finalize(ctx: Context) =

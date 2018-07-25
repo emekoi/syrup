@@ -5,9 +5,8 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import
-  glfw,
-  math
+import math, times
+import glfw
 
 var
   last = 0.0
@@ -17,10 +16,10 @@ var
   avgAcc = 1.0
   avgCount = 1.0
 
-proc getNow*(): float =
-  0.0
+proc getNow*(): float {.inline.} =
+  times.epochTime()
 
-proc getTime*(): float =
+proc getTime*(): float {.inline.} =
   glfw.getTime()
 
 proc step*() =
@@ -37,11 +36,11 @@ proc step*() =
     avgCount = 0
     avgAcc = 0
 
-proc getDelta*(): float =
-  return delta
+proc getDelta*(): float {.inline.} =
+  delta
 
-proc getAverage*(): float =
-  return average
+proc getAverage*(): float {.inline.} =
+  average
 
-proc getFps*(): int32 =
-  return (1 / average + 0.5).floor().int32()
+proc getFps*(): int32 {.inline.} =
+  (1 / average + 0.5).floor().int32()

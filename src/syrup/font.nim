@@ -4,8 +4,7 @@
 #  under the terms of the MIT license. See LICENSE for details.
 #
 
-{.deadCodeElim: on, optimization: speed.}
-{.compile: "suffer/ttf_impl.c".}
+{.compile: "private/ttf_impl.c".}
 
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}

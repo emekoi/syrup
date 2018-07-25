@@ -1,0 +1,33 @@
+total executions of each stack trace:
+Entry: 1/10 Calls: 527/1315 = 40.08% [sum: 527; 527/1315 = 40.08%]
+  suffer.nim: blendPixel 527/1315 = 40.08%
+  suffer.nim: drawBufferScaled 1014/1315 = 77.11%
+  suffer.nim: drawBuffer 1014/1315 = 77.11%
+  suffer.nim: drawBuffer 1014/1315 = 77.11%
+  graphics.nim: drawBuffer 1014/1315 = 77.11%
+  suffer.nim: draw 1014/1315 = 77.11%
+  syrup.nim: run 1314/1315 = 99.92%
+  main.nim: main 1314/1315 = 99.92%
+Entry: 2/10 Calls: 487/1315 = 37.03% [sum: 1014; 1014/1315 = 77.11%]
+  suffer.nim: drawBufferScaled 1014/1315 = 77.11%
+  suffer.nim: drawBuffer 1014/1315 = 77.11%
+  suffer.nim: drawBuffer 1014/1315 = 77.11%
+  graphics.nim: drawBuffer 1014/1315 = 77.11%
+  suffer.nim: draw 1014/1315 = 77.11%
+  syrup.nim: run 1314/1315 = 99.92%
+  main.nim: main 1314/1315 = 99.92%
+Entry: 3/10 Calls: 293/1315 = 22.28% [sum: 1307; 1307/1315 = 99.39%]
+  system.nim: clear 293/1315 = 22.28%
+  graphics.nim: clear 293/1315 = 22.28%
+  syrup.nim: run 1314/1315 = 99.92%
+  main.nim: main 1314/1315 = 99.92%
+Entry: 4/10 Calls: 2/1315 = 0.15% [sum: 1309; 1309/1315 = 99.54%]
+  hashes.nim: !& 2/1315 = 0.15%
+  hashes.nim: hash 3/1315 = 0.23%
+  tableimpl.nim: rawGet 3/1315 = 0.23%
+  tables.nim: hasKey 4/1315 = 0.30%
+  tables.nim: hasKey 4/1315 = 0.30%
+  keyboard.nim: keyDown 4/1315 = 0.30%
+  main.nim: update 5/1315 = 0.38%
+  syrup.nim: run 1314/1315 = 99.92%
+  main.nim: main 1314/1315 = 99.92%

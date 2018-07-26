@@ -1,20 +1,19 @@
 ##
-##  Copyright (c) 2017 emekoi
+##  Copyright (c) 2018 emekoi
 ##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
 import
-  sdl2/sdl, suffer, os, tables,
+  sdl2/sdl, sdl2/sdl_gpu as gpu, os, tables,
   syrup/[system, keyboard, mouse, time, graphics, debug]
 
 type
   Context = ref object
     running*: bool
     window*: sdl.Window
-    surface*: sdl.Surface
-    canvas_size: int
+    target*: gpu.Target
 
   Config = tuple
     title: string
@@ -36,6 +35,7 @@ var
   
 proc finalize(ctx: Context) =
   ctx.window.destroyWindow()
+  gpu.quit()
   sdl.quit()
 
 proc setup() =
@@ -46,20 +46,18 @@ proc setup() =
   if sdl.init(sdl.INIT_VIDEO) != 0:
     quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
-  # Create window
-  CORE.window = sdl.createWindow(
-    SETTINGS.title,
-    sdl.WindowPosUndefined,
-    sdl.WindowPosUndefined,
-    SETTINGS.width, SETTINGS.height,
-    flags)
+  # Create target
+  # CORE.window = sdl.createWindow(
+  #   SETTINGS.title,
+  #   sdl.WindowPosUndefined,
+  #   sdl.WindowPosUndefined,
+  #   SETTINGS.width, SETTINGS.height,
+  #   flags)
 
-  if CORE.window == nil:
-    quit "ERROR: can't create window: " & $sdl.getError()
+  # if CORE.window == nil:
+  #   quit "ERROR: can't create window: " & $sdl.getError()
 
-  CORE.surface = CORE.window.getWindowSurface()
-  graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
-  CORE.canvas_size = SETTINGS.width * SETTINGS.height * sizeof(Pixel)
+  CORE.target = gpu.init(SETTINGS.width, SETTINGS.height, gpu.INIT_DISABLE_VSYNC)
 
   CORE.running = true
 
@@ -126,13 +124,14 @@ proc exit*() =
 
 # CONFIG
 proc resetVideoMode() =
-  discard sdl.setWindowFullscreen(CORE.window, if SETTINGS.fullscreen: sdl.WINDOW_FULLSCREEN_DESKTOP else: 0)
-  sdl.setWindowSize(CORE.window, SETTINGS.width, SETTINGS.height)
-  CORE.canvas_size = SETTINGS.width * SETTINGS.height * sizeof(Pixel)
-  sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
-  sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
-  graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
-  graphics.canvas.reset()
+  discard
+  # discard sdl.setWindowFullscreen(CORE.window, if SETTINGS.fullscreen: sdl.WINDOW_FULLSCREEN_DESKTOP else: 0)
+  # sdl.setWindowSize(CORE.window, SETTINGS.width, SETTINGS.height)
+  # CORE.canvas_size = SETTINGS.width * SETTINGS.height * sizeof(Pixel)
+  # sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
+  # sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
+  # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
+  # graphics.canvas.reset()
   
 proc getTitle*(): string = SETTINGS.title
 
@@ -184,9 +183,5 @@ proc setSampleRate*(samplerate: int) =
 
 proc setBufferSize*(buffersize: uint) =
   SETTINGS.buffersize = buffersize
-
-# GIF
-# proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
-  # gifwriter.writeGif(gif, CORE.canvas, delay, localPalette)
 
 setup()

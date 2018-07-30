@@ -44,10 +44,4 @@ proc clear*() =
 # proc drawBuffer*(src: Buffer, x, y: int, sub: suffer.Rect) = canvas.drawBuffer(src, x, y, sub)
 # proc drawBuffer*(src: Buffer, x, y: int, t: Transform) = canvas.drawBuffer(src, x, y, t)
 # proc drawBuffer*(src: Buffer, x, y: int) = canvas.drawBuffer(src, x, y)
-# proc desaturate*(amount: int) = canvas.desaturate(amount)
-# proc mask*(mask: Buffer, channel: char) = canvas.mask(mask, channel)
-# proc palette*(palette: openarray[Pixel]) = canvas.palette(palette)
-# proc dissolve*(amount: int, seed: uint) = canvas.dissolve(amount, seed)
-# proc wave*(src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int) = canvas.wave(src, amountX, amountY, scaleX, scaleY, offsetX, offsetY)
-# proc displace*(src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int) = canvas.displace(src, map, channelX, channelY, scaleX, scaleY)
-# proc blur*(src: Buffer, radiusx, radiusy: int) = canvas.blur(src, radiusx, radiusy)
+

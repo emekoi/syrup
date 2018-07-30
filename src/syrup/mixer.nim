@@ -7,8 +7,7 @@
 
 import sdl2/sdl, ../syrup
 
-{.passl: "-lm".}
-{.passc: "-DCM_USE_STB_VORBIS".}
+{.passC: "-DCM_USE_STB_VORBIS".}
 
 {.compile: "private/cmixer_impl.c".}
 {.compile: "private/stb_vorbis.c".}

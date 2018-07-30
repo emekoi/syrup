@@ -43,14 +43,14 @@
 
 struct cm_Source {
   cm_Source *next;              /* Next source in list */
-  cm_Int16 buffer[BUFFER_SIZE]; /* Internal buffer with raw stereo PCM */
+  int16_t buffer[BUFFER_SIZE]; /* Internal buffer with raw stereo PCM */
   cm_EventHandler handler;      /* Event handler */
   void *udata;          /* Stream's udata (from cm_SourceInfo) */
   int samplerate;       /* Stream's native samplerate */
   int length;           /* Stream's length in frames */
   int end;              /* End index for the current play-through */
   int state;            /* Current state (playing|paused|stopped) */
-  cm_Int64 position;    /* Current playhead position (fixed point) */
+  int64_t position;    /* Current playhead position (fixed point) */
   int lgain, rgain;     /* Left and right gain (fixed point) */
   int rate;             /* Playback rate (fixed point) */
   int nextfill;         /* Next frame idx where the buffer needs to be filled */
@@ -66,7 +66,7 @@ static struct {
   const char *lasterror;        /* Last error message */
   cm_EventHandler lock;         /* Event handler for lock/unlock events */
   cm_Source *sources;           /* Linked list of active (playing) sources */
-  cm_Int32 buffer[BUFFER_SIZE]; /* Internal master buffer */
+  int32_t buffer[BUFFER_SIZE]; /* Internal master buffer */
   int samplerate;               /* Master samplerate */
   int gain;                     /* Master gain (fixed point) */
 } cmixer;
@@ -147,7 +147,7 @@ static void fill_source_buffer(cm_Source *src, int offset, int length) {
 static void process_source(cm_Source *src, int len) {
   int i, n, a, b, p;
   int frame, count;
-  cm_Int32 *dst = cmixer.buffer;
+  int32_t *dst = cmixer.buffer;
 
   /* Do rewind if flag is set */
   if (src->rewind) {
@@ -223,7 +223,7 @@ static void process_source(cm_Source *src, int len) {
 }
 
 
-void cm_process(cm_Int16 *dst, int len) {
+void cm_process(int16_t *dst, int len) {
   int i;
   cm_Source **s;
 
@@ -499,7 +499,7 @@ static char* find_subchunk(char *data, int len, char *id, int *size) {
   int idlen = strlen(id);
   char *p = data + 12;
 next:
-  *size = *((cm_UInt32*) (p + 4));
+  *size = *((uint32_t*) (p + 4));
   if (memcmp(p, id, idlen)) {
     p += 8 + *size;
     if (p > data + len) return NULL;
@@ -526,10 +526,10 @@ static const char* read_wav(Wav *w, void *data, int len) {
   }
 
   /* Load fmt info */
-  format      = *((cm_UInt16*) (p));
-  channels    = *((cm_UInt16*) (p + 2));
-  samplerate  = *((cm_UInt32*) (p + 4));
-  bitdepth    = *((cm_UInt16*) (p + 14));
+  format      = *((uint16_t*) (p));
+  channels    = *((uint16_t*) (p + 2));
+  samplerate  = *((uint32_t*) (p + 4));
+  bitdepth    = *((uint16_t*) (p + 14));
   if (format != 1) {
     return error("unsupported format");
   }
@@ -563,7 +563,7 @@ static const char* read_wav(Wav *w, void *data, int len) {
 
 static void wav_handler(cm_Event *e) {
   int x, n;
-  cm_Int16 *dst;
+  int16_t *dst;
   WavStream *s = e->udata;
   int len;
 
@@ -582,23 +582,23 @@ fill:
       len -= n;
       if (s->wav.bitdepth == 16 && s->wav.channels == 1) {
         WAV_PROCESS_LOOP({
-          dst[0] = dst[1] = ((cm_Int16*) s->wav.data)[s->idx];
+          dst[0] = dst[1] = ((int16_t*) s->wav.data)[s->idx];
         });
       } else if (s->wav.bitdepth == 16 && s->wav.channels == 2) {
         WAV_PROCESS_LOOP({
           x = s->idx * 2;
-          dst[0] = ((cm_Int16*) s->wav.data)[x    ];
-          dst[1] = ((cm_Int16*) s->wav.data)[x + 1];
+          dst[0] = ((int16_t*) s->wav.data)[x    ];
+          dst[1] = ((int16_t*) s->wav.data)[x + 1];
         });
       } else if (s->wav.bitdepth == 8 && s->wav.channels == 1) {
         WAV_PROCESS_LOOP({
-          dst[0] = dst[1] = (((cm_UInt8*) s->wav.data)[s->idx] - 128) << 8;
+          dst[0] = dst[1] = (((uint8_t*) s->wav.data)[s->idx] - 128) << 8;
         });
       } else if (s->wav.bitdepth == 8 && s->wav.channels == 2) {
         WAV_PROCESS_LOOP({
           x = s->idx * 2;
-          dst[0] = (((cm_UInt8*) s->wav.data)[x    ] - 128) << 8;
-          dst[1] = (((cm_UInt8*) s->wav.data)[x + 1] - 128) << 8;
+          dst[0] = (((uint8_t*) s->wav.data)[x    ] - 128) << 8;
+          dst[1] = (((uint8_t*) s->wav.data)[x + 1] - 128) << 8;
         });
       }
       /* Loop back and continue filling buffer if we didn't fill the buffer */
@@ -667,7 +667,7 @@ typedef struct {
 static void ogg_handler(cm_Event *e) {
   int n, len;
   OggStream *s = e->udata;
-  cm_Int16 *buf;
+  int16_t *buf;
 
   switch (e->type) {
 

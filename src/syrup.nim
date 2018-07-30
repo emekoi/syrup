@@ -32,6 +32,14 @@ var
     60.0, 44100, 1024'u
   )
 
+proc resetVideoMode() =
+  discard gpu.setFullscreen(SETTINGS.fullscreen, true)
+  discard gpu.setWindowResolution(uint16(SETTINGS.width), uint16(SETTINGS.height))
+  # sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
+  # sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
+  # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
+  # graphics.canvas.reset()
+
 proc finalize(ctx: Context) =
   ctx.window.destroyWindow()
   gpu.quit()
@@ -40,25 +48,24 @@ proc finalize(ctx: Context) =
 proc setup() =
   new(CORE, finalize)
 
-  var flags = 0'u32
+  let flags = uint32(gpu.INIT_DISABLE_VSYNC)
 
   if sdl.init(sdl.INIT_VIDEO) != 0:
     quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
-  # Create target
-  # CORE.window = sdl.createWindow(
-  #   SETTINGS.title,
-  #   sdl.WindowPosUndefined,
-  #   sdl.WindowPosUndefined,
-  #   SETTINGS.width, SETTINGS.height,
-  #   flags)
+  # sutup rendering target
+  when defined(USE_GL2) or true:
+    graphics.screen = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
+      uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
+  else:
+    graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
 
-  # if CORE.window == nil:
-  #   quit "ERROR: can't create window: " & $sdl.getError()
-
-  graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), gpu.INIT_DISABLE_VSYNC)
   if graphics.screen.isNil():
-    quit "ERROR: can't initialize SDL video: " & $sdl.getError()
+    quit "ERROR: failed to initialize SDL_gpu video: " & $sdl.getError()
+
+  CORE.window = sdl.getWindowFromID(gpu.getInitWindow())
+  if CORE.window == nil:
+    echo "ERROR: can't find SDL window: " & $sdl.getError()
 
   CORE.running = true
 
@@ -73,9 +80,15 @@ proc run*(update: proc(dt: float), draw: proc()) =
 
   while CORE.running:
     for e in system.poll():
-      if e.id == system.QUIT:
-        CORE.running = false
-      system.update(e)
+      case e.id:
+        of EventType.QUIT:
+          CORE.running = false
+        of EventType.RESIZE:
+          SETTINGS.width = e.width
+          SETTINGS.height = e.height
+          resetVideoMode()
+        else:
+          system.update(e)
 
     time.step()
 
@@ -103,8 +116,8 @@ proc run*(update: proc(dt: float), draw: proc()) =
 
     let step = 1.0 / SETTINGS.fps
 
-    when defined(useRealtimeGC):
     # run the GC
+    when defined(useRealtimeGC):
       GC_step((step * 1.0e6).int)
 
     # wait for next frame
@@ -116,37 +129,39 @@ proc run*(update: proc(dt: float), draw: proc()) =
     else:
       last = now
 
+{.push inline.}
+
 proc exit*() =
   CORE.running = false
 
-# CONFIG
-proc resetVideoMode() =
-  discard
-  # discard sdl.setWindowFullscreen(CORE.window, if SETTINGS.fullscreen: sdl.WINDOW_FULLSCREEN_DESKTOP else: 0)
-  # sdl.setWindowSize(CORE.window, SETTINGS.width, SETTINGS.height)
-  # CORE.canvas_size = SETTINGS.width * SETTINGS.height * sizeof(Pixel)
-  # sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
-  # sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
-  # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
-  # graphics.canvas.reset()
+proc getTitle*(): string =
+  SETTINGS.title
 
-proc getTitle*(): string = SETTINGS.title
+proc getWidth*(): int =
+  SETTINGS.width
 
-proc getWidth*(): int = SETTINGS.width
+proc getHeight*(): int =
+  SETTINGS.height
 
-proc getHeight*(): int = SETTINGS.height
+proc getFullscreen*(): bool =
+  SETTINGS.fullscreen
 
-proc getFullscreen*(): bool = SETTINGS.fullscreen
+proc getResizable*(): bool =
+  SETTINGS.resizable
 
-proc getResizable*(): bool = SETTINGS.resizable
+proc getBordered*(): bool =
+  SETTINGS.bordered
 
-proc getBordered*(): bool = SETTINGS.bordered
+proc getMaxFps*(): float =
+  SETTINGS.fps
 
-proc getMaxFps*(): float = SETTINGS.fps
+proc getSampleRate*(): int =
+  SETTINGS.samplerate
 
-proc getSampleRate*(): int = SETTINGS.samplerate
+proc getBufferSize*(): uint =
+  SETTINGS.buffersize
 
-proc getBufferSize*(): uint = SETTINGS.buffersize
+{.pop.}
 
 proc setTitle*(title: string) =
   SETTINGS.title = title

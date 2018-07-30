@@ -8,7 +8,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdlib.h>
+#include <stdint.h>
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
@@ -28,19 +29,19 @@ typedef struct {
   void *fontData;
   float ptsize;
   float scale;
-  int baseline;
+  int32_t baseline;
 } ttf_Font;
 
 
-ttf_Font *ttf_new(const void *data, int len);
+ttf_Font *ttf_new(const void *data, int32_t len);
 void ttf_destroy(ttf_Font *self);
 void ttf_ptsize(ttf_Font *self, float ptsize);
-int ttf_height(ttf_Font *self);
-int ttf_width(ttf_Font *self, const char *str);
-void *ttf_render(ttf_Font *self, const char *str, int *w, int *h);
+int32_t ttf_height(ttf_Font *self);
+int32_t ttf_width(ttf_Font *self, const char *str);
+void ttf_render(ttf_Font *self, uint8_t* bitmap, const char *str, int32_t *w, int32_t *h);
 
 
-ttf_Font *ttf_new(const void *data, int len) {
+ttf_Font *ttf_new(const void *data, int32_t len) {
   ttf_Font *self = calloc(1, sizeof(*self));
   if (!self) {
     goto fail;
@@ -73,7 +74,7 @@ void ttf_destroy(ttf_Font *self) {
 
 
 void ttf_ptsize(ttf_Font *self, float ptsize) {
-  int ascent, descent, lineGap;
+  int32_t ascent, descent, lineGap;
   self->ptsize = ptsize;
   self->scale = stbtt_ScaleForMappingEmToPixels(&self->font, self->ptsize);
   stbtt_GetFontVMetrics(&self->font, &ascent, &descent, &lineGap);
@@ -81,15 +82,15 @@ void ttf_ptsize(ttf_Font *self, float ptsize) {
 }
 
 
-int ttf_height(ttf_Font *self) {
-  int ascent, descent, lineGap;
+int32_t ttf_height(ttf_Font *self) {
+  int32_t ascent, descent, lineGap;
   stbtt_GetFontVMetrics(&self->font, &ascent, &descent, &lineGap);
   return ceil((ascent - descent + lineGap) * self->scale) + 1;
 }
 
 
-static const char *ttf_utf8toCodepoint(const char *p, unsigned *res) {
-  unsigned x, mask, shift;
+static const char *ttf_utf8toCodepoint(const char *p, uint32_t *res) {
+  uint32_t x, mask, shift;
   switch (*p & 0xf0) {
     case 0xf0:  mask = 0x07;  shift = 18;   break;
     case 0xe0:  mask = 0x0f;  shift = 12;   break;
@@ -114,25 +115,25 @@ static const char *ttf_utf8toCodepoint(const char *p, unsigned *res) {
 }
 
 
-static float ttf_charWidthf(ttf_Font *self, int c, int last) {
-  int res = 0;
-  int width, lsb;
+static float ttf_charWidthf(ttf_Font *self, int32_t c, int32_t last) {
+  int32_t res = 0;
+  int32_t width, lsb;
   stbtt_GetCodepointHMetrics(&self->font, c, &width, &lsb);
   res = width;
   if (last) {
-    int kerning = stbtt_GetCodepointKernAdvance(&self->font, last, c);
+    int32_t kerning = stbtt_GetCodepointKernAdvance(&self->font, last, c);
     res += kerning;
   }
   return res * self->scale;
 }
 
 
-int ttf_width(ttf_Font *self, const char *str) {
+int32_t ttf_width(ttf_Font *self, const char *str) {
   float res = 0;
-  int last = 0;
+  int32_t last = 0;
   const char *p = str;
   while (*p) {
-    unsigned c;
+    uint32_t c;
     p = ttf_utf8toCodepoint(p, &c);
     res += ttf_charWidthf(self, c, last);
     last = c;
@@ -141,39 +142,39 @@ int ttf_width(ttf_Font *self, const char *str) {
 }
 
 
-void *ttf_render(ttf_Font *self, const char *str, int *w, int *h) {
+void ttf_render(ttf_Font *self, uint8_t* bitmap, const char *str, int32_t *w, int32_t *h) {
   *w = ttf_width(self, str);
   *h = ttf_height(self);
-  void *pixels = calloc(1, *w * *h);
-  if (!pixels) return NULL;
+  if (!bitmap) {
+    return;
+  }
   const char *p = str;
   float xoffset = 0;
   float xfract = 0;
-  int last = 0;
+  int32_t last = 0;
   while (*p) {
     /* Get unicode codepoint */
-    unsigned c;
+    uint32_t c;
     p = ttf_utf8toCodepoint(p, &c);
     /* Get char placement coords */
-    int x0, y0, x1, y1;
+    int32_t x0, y0, x1, y1;
     stbtt_GetCodepointBitmapBoxSubpixel(
       &self->font, c, self->scale, self->scale, xfract, 0,
       &x0, &y0, &x1, &y1);
     /* Work out position / max size */
-    int x = xoffset + x0;
-    int y = self->baseline + y0;
+    int32_t x = xoffset + x0;
+    int32_t y = self->baseline + y0;
     if (x < 0) x = 0;
     if (y < 0) y = 0;
     /* Render char */
     stbtt_MakeCodepointBitmapSubpixel(
       &self->font,
-      pixels + x + (y * *w),
+      bitmap + x + (y * *w),
       *w - x, *h - y, *w, self->scale, self->scale,
       xfract, 0, c);
     /* Next */
     xoffset += ttf_charWidthf(self, c, last);
-    xfract = xoffset - (int) xoffset;
+    xfract = xoffset - (int32_t) xoffset;
     last = c;
   }
-  return pixels;
 }

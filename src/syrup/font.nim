@@ -10,27 +10,22 @@
 import embed
 
 type
-  FontError* = object of Exception
-  
-  stbtt_fontinfo {.exportc.} = object
+  stbtt_fontinfo = object
 
-  ttf_Font {.exportc.} = object
-    font*: stbtt_fontinfo
-    fontData*: pointer
+  ttf_Font = ptr object
+    font: stbtt_fontinfo
+    fontData: pointer
     ptsize*: cfloat
     scale*: cfloat
     baseline*: cint
   
-  Font* = ref ptr ttf_Font
+  Font* = ref ttf_Font
 
-# let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
-
-# proc fromDefault*(ptsize: float): Font =
-#   newFontString(DEFAULT_FONT_DATA, ptsize)
-
-# proc fromDefault*(): Font = DEFAULT_FONT
-
-proc newFont*(data: seq[byte], ptsize: float): Font
+proc newFontDefault*(ptsize: float): Font
+  ## returns a copy of the default embeded font with the givern size
+proc newFontDefault*(): Font
+  ## returns a copy of the default embeded font
+proc newFont*(data: seq[uint8], ptsize: float): Font
   ## attemtpts to create a font from a sequence of bytes
 proc newFontFile*(filename: string, ptsize: float): Font
   ## loads a font from a file
@@ -42,35 +37,41 @@ proc getHeight*(font: Font): int
   ## gets the height of the font
 proc getWidth*(font: Font, txt: string): int
   ## gets the width of `str` rendered in the font
-proc render*(font: Font, txt: string): Buffer
+proc render*(font: Font, txt: string): seq[uint8]
   ## creates a new Buffer with `txt` rendered on it using `font`
 
 {.push cdecl, importc.}
-proc ttf_new(data: pointer, len: cint): ptr ttf_Font
-proc ttf_destroy(self: ptr ttf_Font)
-proc ttf_ptsize(self: ptr ttf_Font, ptsize: cfloat)
-proc ttf_height(self: ptr ttf_Font): cint
-proc ttf_width(self: ptr ttf_Font, str: cstring): cint
-proc ttf_render(self: ptr ttf_Font, str: cstring, w, h: var cint): pointer
+proc ttf_new(data: pointer, len: cint): ttf_Font
+proc ttf_destroy(self: ttf_Font)
+proc ttf_ptsize(self: ttf_Font, ptsize: cfloat)
+proc ttf_height(self: ttf_Font): cint
+proc ttf_width(self: ttf_Font, str: cstring): cint
+proc ttf_render(self: ttf_Font, bitmap: ptr uint8, str: cstring, w, h: var cint)
 {.pop.}
 
-
-converter toCFont(font: Font): ptr ttf_Font = font[]
+converter toCFont(font: Font): ttf_Font = font[]
 
 proc finalizer(font: Font) =
   if font != nil: ttf_destroy(font)
 
-{.push checks: off, inline.}  
-proc newFont*(data: seq[byte], ptsize: float): Font =
+let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
+
+proc newFontDefault*(ptsize: float): Font =
+  newFontString(DEFAULT_FONT_DATA, ptsize)
+
+proc newFontDefault*(): Font =
+  DEFAULT_FONT
+
+proc newFont*(data: seq[uint8], ptsize: float): Font =
   new result, finalizer
   result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
-  if result == nil: raise newException(FontError, "unable to load font")
+  if result == nil: raise newException(Exception, "unable to load font")
   result.setSize(ptsize)
     
 proc newFontString*(data: string, ptsize: float): Font =
   new result, finalizer
   result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
-  if result == nil: raise newException(FontError, "unable to load font")
+  if result == nil: raise newException(Exception, "unable to load font")
   result.setSize(ptsize)
 
 proc newFontFile*(filename: string, ptsize: float): Font =
@@ -85,19 +86,12 @@ proc getHeight*(font: Font): int =
 
 proc getWidth*(font: Font, txt: string): int =
   return ttf_width(font, txt.cstring).int
-  
-proc render*(font: Font, txt: string): Buffer =
+
+proc render*(font: Font, txt: string): seq[uint8] =
   var
     w, h: cint = 0
     txt = txt
-  if txt == nil or txt.len == 0: txt = " "
-  let bitmap = ttf_render(font, txt.cstring, w, h);
-  if bitmap == nil:
-    raise newException(FontError, "could not render text")
-  # Load bitmap and free intermediate 8bit bitmap
-  var pixels = newSeq[byte](w * h)
-  copyMem(pixels[0].addr, bitmap, w * h * sizeof(byte))
-  result = newBuffer(w, h)
-  result.loadPixels8(pixels)
-
-{.pop.}
+  if txt.isNil or txt.len == 0: txt = " "
+  ttf_render(font, nil, txt.cstring, w, h)
+  result = newSeq[uint8](w * h)
+  ttf_render(font, result[0].addr, txt.cstring, w, h)

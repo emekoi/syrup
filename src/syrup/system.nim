@@ -8,8 +8,7 @@
 import sdl2/sdl, strutils
 
 type
-  EventType* = enum
-    NONE
+  EventType* {.pure.} = enum
     QUIT
     RESIZE
     KEYDOWN
@@ -21,12 +20,12 @@ type
 
   Event* = object
     case id*: EventType
-    of QUIT, NONE: discard
-    of RESIZE: width*, height*: int
-    of KEYDOWN, KEYUP: key*: string
-    of TEXTINPUT: text*: string
-    of MOUSEMOVE: x*, y*: int
-    of MOUSEBUTTONDOWN, MOUSEBUTTONUP: press*: tuple[button: string, x, y: int]
+    of EventType.QUIT: discard
+    of EventType.RESIZE: width*, height*: int
+    of EventType.KEYDOWN, EventType.KEYUP: key*: string
+    of EventType.TEXTINPUT: text*: string
+    of EventType.MOUSEMOVE: x*, y*: int
+    of EventType.MOUSEBUTTONDOWN, EventType.MOUSEBUTTONUP: press*: tuple[button: string, x, y: int]
 
   EventHandler* = proc(e: Event)
 
@@ -45,34 +44,52 @@ proc addEventHandler*(e: EventHandler) =
   if e notin eventHandlers:
     eventHandlers.add(e)
 
-proc poll*(): seq[Event] =
-  result = @[]
-  var e: sdl.Event
-  while sdl.pollEvent(addr(e)) != 0:
-    var event: Event
-    event.id = NONE
-    case e.kind
-    of sdl.QUIT:
-      event.id = QUIT
-    of sdl.WINDOWEVENT:
-      if e.window.event == sdl.WINDOWEVENT_RESIZED:
-        event = Event(id: RESIZE, width: e.window.data1, height: e.window.data2)
-    of sdl.KEYDOWN:
-        event = Event(id: KEYDOWN, key: ($sdl.getKeyName(e.key.keysym.sym)).toLowerAscii())
-    of sdl.KEYUP:
-        event = Event(id: KEYUP, key: ($sdl.getKeyName(e.key.keysym.sym)).toLowerAscii())
-    of sdl.TEXTINPUT:
-      event = Event(id: TEXTINPUT, text: $e.text.text)
-    of sdl.MOUSEMOTION:
-        event = Event(id: MOUSEMOVE, x: e.motion.x, y: e.motion.y)
-    of sdl.MOUSEBUTTONDOWN:
-        event = Event(id: MOUSEBUTTONDOWN, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
-    of sdl.MOUSEBUTTONUP:
-        event = Event(id: MOUSEBUTTONUP, press: (buttonStr(e.button.button), e.button.x.int, e.button.y.int))
-    else: discard
-
-    if event.id != NONE:
-      result.add(event)
+iterator poll*(): Event =
+  for event in sdl.events():
+    case event.kind
+      of sdl.QUIT:
+        yield Event(id: EventType.QUIT)
+      of sdl.WINDOWEVENT:
+        if event.window.event == sdl.WINDOWEVENT_RESIZED:
+          yield Event(id: EventType.RESIZE,
+            width: event.window.data1,
+            height: event.window.data2
+          )
+      of sdl.KEYDOWN:
+        yield Event(id: EventType.KEYDOWN,
+          key: ($sdl.getKeyName(event.key.keysym.sym)).toLowerAscii()
+        )
+      of sdl.KEYUP:
+        yield Event(id: EventType.KEYUP,
+          key: ($sdl.getKeyName(event.key.keysym.sym)).toLowerAscii()
+        )
+      of sdl.TEXTINPUT:
+        yield Event(id: EventType.TEXTINPUT,
+          text: $event.text.text
+        )
+      of sdl.MOUSEMOTION:
+        yield Event(id: EventType.MOUSEMOVE,
+          x: event.motion.x,
+          y: event.motion.y
+        )
+      of sdl.MOUSEBUTTONDOWN:
+        yield Event(id: EventType.MOUSEBUTTONDOWN,
+          press: (
+            buttonStr(event.button.button),
+            event.button.x.int,
+            event.button.y.int
+          )
+        )
+      of sdl.MOUSEBUTTONUP:
+        yield Event(id: EventType.MOUSEBUTTONUP,
+          press: (
+            buttonStr(event.button.button),
+            event.button.x.int,
+            event.button.y.int
+          )
+        )
+      else:
+        continue
 
 proc update*(e: Event) =
   for p in eventHandlers: p(e)

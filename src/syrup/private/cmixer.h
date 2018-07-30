@@ -10,12 +10,7 @@
 
 #define CM_VERSION "0.1.1"
 
-typedef short           cm_Int16;
-typedef int             cm_Int32;
-typedef long long       cm_Int64;
-typedef unsigned char   cm_UInt8;
-typedef unsigned short  cm_UInt16;
-typedef unsigned        cm_UInt32;
+#include <stdint.h>
 
 typedef struct cm_Source cm_Source;
 
@@ -23,7 +18,7 @@ typedef struct {
   int type;
   void *udata;
   const char *msg;
-  cm_Int16 *buffer;
+  int16_t *buffer;
   int length;
 } cm_Event;
 
@@ -56,7 +51,7 @@ const char* cm_get_error(void);
 void cm_init(int samplerate);
 void cm_set_lock(cm_EventHandler lock);
 void cm_set_master_gain(double gain);
-void cm_process(cm_Int16 *dst, int len);
+void cm_process(int16_t *dst, int len);
 
 cm_Source* cm_new_source(const cm_SourceInfo *info);
 cm_Source* cm_new_source_from_file(const char *filename);

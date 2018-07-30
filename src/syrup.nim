@@ -7,13 +7,12 @@
 
 import
   sdl2/sdl, sdl2/sdl_gpu as gpu, os, tables,
-  syrup/[system, keyboard, mouse, time, graphics, debug]
+  syrup/[system, keyboard, mouse, time, graphics]
 
 type
   Context = ref object
     running*: bool
     window*: sdl.Window
-    target*: gpu.Target
 
   Config = tuple
     title: string
@@ -32,7 +31,7 @@ var
     false, false, true,
     60.0, 44100, 1024'u
   )
-  
+
 proc finalize(ctx: Context) =
   ctx.window.destroyWindow()
   gpu.quit()
@@ -57,7 +56,9 @@ proc setup() =
   # if CORE.window == nil:
   #   quit "ERROR: can't create window: " & $sdl.getError()
 
-  CORE.target = gpu.init(SETTINGS.width, SETTINGS.height, gpu.INIT_DISABLE_VSYNC)
+  graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), gpu.INIT_DISABLE_VSYNC)
+  if graphics.screen.isNil():
+    quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
   CORE.running = true
 
@@ -69,7 +70,7 @@ proc run*(update: proc(dt: float), draw: proc()) =
 
   when defined(useRealtimeGC):
     GC_disable()
-    
+
   while CORE.running:
     for e in system.poll():
       if e.id == system.QUIT:
@@ -89,20 +90,16 @@ proc run*(update: proc(dt: float), draw: proc()) =
       drawFunc()
 
     # draw debug indicators
-    debug.drawIndicators()
+    # debug.drawIndicators()
 
     # reset input
     keyboard.reset()
     mouse.reset()
 
-    # draw the buffer to the screen
-    if CORE.surface != nil and CORE.surface.mustLock():
-      if CORE.surface.lockSurface() != 0:
-        quit "ERROR: couldn't lock screen: " & $sdl.getError()
-    copyMem(CORE.surface.pixels, graphics.canvas.pixels[0].addr, CORE.canvas_size)
-    if CORE.surface.mustLock(): CORE.surface.unlockSurface()
-    if CORE.window.updateWindowSurface() != 0:
-      quit "ERROR: couldn't update screen: " & $sdl.getError()
+    graphics.screen.circleFilled(0.0, 0.0, 100.0, (0, 0, 255))
+
+    # update the screen
+    graphics.screen.flip()
 
     let step = 1.0 / SETTINGS.fps
 
@@ -132,7 +129,7 @@ proc resetVideoMode() =
   # sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
   # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
   # graphics.canvas.reset()
-  
+
 proc getTitle*(): string = SETTINGS.title
 
 proc getWidth*(): int = SETTINGS.width
@@ -177,7 +174,7 @@ proc setBordered*(bordered: bool) =
 
 proc setMaxFps*(fps: float) =
   SETTINGS.fps = fps
-  
+
 proc setSampleRate*(samplerate: int) =
   SETTINGS.samplerate = samplerate
 

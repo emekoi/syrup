@@ -31,12 +31,12 @@ proc mousePosition*(): (int, int) =
 
 proc onEvent(e: Event) =
   case e.id
-  of MOUSEMOVE:
+  of EventType.MOUSEMOVE:
     mousePos = (e.x, e.y)
-  of MOUSEBUTTONDOWN:
+  of EventType.MOUSEBUTTONDOWN:
     buttonsDown[e.press.button] = true
     buttonsPressed[e.press.button] = true
-  of MOUSEBUTTONUP:
+  of EventType.MOUSEBUTTONUP:
     buttonsDown[e.press.button] = false
   else: discard
 

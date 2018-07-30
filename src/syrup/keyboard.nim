@@ -27,14 +27,12 @@ proc keyReleased*(keys: varargs[string]): bool =
 
 proc onEvent(e: Event) =
   case e.id
-  of QUIT, NONE: discard
-  of RESIZE: discard
-  of KEYDOWN:
+  of EventType.KEYDOWN:
     keysDown[e.key] = true
     keysPressed[e.key] = true
-  of KEYUP:
+  of EventType.KEYUP:
     keysDown[e.key] = false
-  of TEXTINPUT: discard
+  of EventType.TEXTINPUT: discard
   else: discard
 
 proc reset*() =

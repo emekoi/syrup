@@ -9,6 +9,7 @@ import syrup, syrup/[keyboard, font]
 import random, times, math
 
 syrup.setTitle("simple")
+# syrup.setFullscreen(true)
 
 proc update(dt: float) =
   if keyboard.keyDown("escape"): exit()

@@ -9,8 +9,8 @@ import sdl2/sdl_gpu as gpu
 
 var screen*: gpu.Target
 
-# type Color {.packed.} = tuple
-#   r, g, b, a: float
+type Color {.packed.} = tuple
+  r, g, b, a: float
 
 # proc cloneBuffer*(): Buffer = canvas.cloneBuffer()
 # proc loadPixels*(src: openarray[uint32], fmt: suffer.PixelFormat) = canvas.loadPixels(src, fmt)
@@ -44,4 +44,3 @@ proc clear*() =
 # proc drawBuffer*(src: Buffer, x, y: int, sub: suffer.Rect) = canvas.drawBuffer(src, x, y, sub)
 # proc drawBuffer*(src: Buffer, x, y: int, t: Transform) = canvas.drawBuffer(src, x, y, t)
 # proc drawBuffer*(src: Buffer, x, y: int) = canvas.drawBuffer(src, x, y)
-

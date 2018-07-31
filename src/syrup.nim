@@ -50,27 +50,27 @@ proc setup() =
 
   let flags = uint32(gpu.INIT_DISABLE_VSYNC)
 
+  # set debug level
   when not defined(release):
-    # set debug level
     gpu.setDebugLevel(gpu.DEBUG_LEVEL_MAX)
-
-  # init sdl_gpu
-  if sdl.init(sdl.INIT_VIDEO) != 0:
-    quit "ERROR: can't initialize SDL video: " & $sdl.getError()
+    when defined(windows):
+      setStdIoUnbuffered()
 
   # setup rendering target
-  when defined(USE_GL2) or true:
+  when defined(OPENGL2) or true:
     graphics.screen = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
       uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
   else:
     graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
 
   if graphics.screen.isNil:
-    quit "ERROR: failed to initialize SDL_gpu video: " & $sdl.getError()
+    gpu.logError("failed to create screen target")
+    quit(QuitFailure)
 
-  # CORE.window = sdl.getWindowFromID(graphics.screen.context.windowID)
-  # if CORE.window.isNil:
-  #   quit "ERROR: can't find SDL window: " & $sdl.getError()
+  CORE.window = sdl.getWindowFromID(1)
+  if CORE.window.isNil:
+    gpu.logError("failed to find window")
+    quit(QuitFailure)
 
   CORE.running = true
 
@@ -179,16 +179,19 @@ proc setHeight*(height: int) =
   resetVideoMode()
 
 proc setFullscreen*(fullscreen: bool) =
-  SETTINGS.fullscreen = fullscreen
-  resetVideoMode()
+  if SETTINGS.fullscreen != fullscreen:
+    SETTINGS.fullscreen = fullscreen
+    resetVideoMode()
 
 proc setResizable*(resizable: bool) =
-  SETTINGS.resizable = resizable
-  resetVideoMode()
+  if SETTINGS.resizable != resizable:
+    SETTINGS.resizable = resizable
+    resetVideoMode()
 
 proc setBordered*(bordered: bool) =
-  SETTINGS.bordered = bordered
-  resetVideoMode()
+  if SETTINGS.bordered != bordered:
+    SETTINGS.bordered = bordered
+    resetVideoMode()
 
 proc setMaxFps*(fps: float) =
   SETTINGS.fps = fps

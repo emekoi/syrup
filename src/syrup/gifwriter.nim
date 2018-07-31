@@ -6,7 +6,7 @@
 ##
 
 
-import math, suffer
+import math
 
 {.passl: "-lm".}
 {.compile: "private/jo_gif.c".}
@@ -53,7 +53,7 @@ type
     buf: seq[uint8]
     w, h: int
     expectedFrameSize: int
-  
+
 proc close*(gif: Gif)
 
 proc finalize*(gif: Gif) =
@@ -72,13 +72,13 @@ proc newGif*(filename: string, width, height: int, fps=30.0, colors=63, loop=tru
   result.w = width
   result.h = height
   result.expectedFrameSize = width * height * 4
-  
+
   result.state = GifState.ACTIVE
 
 proc close*(gif: Gif) =
   assert gif.state == GifState.ACTIVE, "gif already closed"
   gif.state = GifState.CLOSED
-  jo_gif_end(addr gif.gif)  
+  jo_gif_end(addr gif.gif)
 
 proc writeGif*(gif: Gif, pixels: pointer, delay=0.0, localPalette=false) =
   assert gif.state == GifState.ACTIVE, "can't write closed gif"

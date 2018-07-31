@@ -27,10 +27,10 @@ The project also includes modified 3rd party source files, the full licenses for
 files can be found through their corresponding URL or in the files themselves.
 An overview of the source files are as follows:
 
-src/syrup/private/cmixer.nim
-. Nim wrapper for cmixer, A lightweight audio mixer for games
+src/syrup/private/cmixer*
+. Portable ANSI C audio mixer for games
 . MIT license
-. https://github.com/rxi/cmixer-nim
+. https://github.com/rxi/cmixer
 
 src/syrup/mixer.nim
 . Tiny Nim library for using cmixer with sdl2

@@ -50,22 +50,27 @@ proc setup() =
 
   let flags = uint32(gpu.INIT_DISABLE_VSYNC)
 
+  when not defined(release):
+    # set debug level
+    gpu.setDebugLevel(gpu.DEBUG_LEVEL_MAX)
+
+  # init sdl_gpu
   if sdl.init(sdl.INIT_VIDEO) != 0:
     quit "ERROR: can't initialize SDL video: " & $sdl.getError()
 
-  # sutup rendering target
+  # setup rendering target
   when defined(USE_GL2) or true:
     graphics.screen = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
       uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
   else:
     graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
 
-  if graphics.screen.isNil():
+  if graphics.screen.isNil:
     quit "ERROR: failed to initialize SDL_gpu video: " & $sdl.getError()
 
-  CORE.window = sdl.getWindowFromID(gpu.getInitWindow())
-  if CORE.window == nil:
-    echo "ERROR: can't find SDL window: " & $sdl.getError()
+  # CORE.window = sdl.getWindowFromID(graphics.screen.context.windowID)
+  # if CORE.window.isNil:
+  #   quit "ERROR: can't find SDL window: " & $sdl.getError()
 
   CORE.running = true
 
@@ -108,8 +113,6 @@ proc run*(update: proc(dt: float), draw: proc()) =
     # reset input
     keyboard.reset()
     mouse.reset()
-
-    graphics.screen.circleFilled(0.0, 0.0, 100.0, (0, 0, 255))
 
     # update the screen
     graphics.screen.flip()

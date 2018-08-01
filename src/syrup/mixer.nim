@@ -1,11 +1,11 @@
 ##
 ##  Copyright (c) 2018 emekoi
-## 
+##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import sdl2/sdl, ../syrup
+import sdl2/sdl
 
 {.passC: "-DCM_USE_STB_VORBIS".}
 
@@ -13,14 +13,24 @@ import sdl2/sdl, ../syrup
 {.compile: "private/stb_vorbis.c".}
 
 type
-  cm_Source = object
+  cm_Source = ptr object
 
-  Source* = ref object
-    csource: ptr cm_Source
-    data: ref RootObj
+  Source* = ref cm_Source
+
+  State* {.pure.} = enum
+    STOPPED
+    PLAYING
+    PAUSED
+
+  EventType* {.pure.} = enum
+    LOCK
+    UNLOCK
+    DESTROY
+    SAMPLES
+    REWIND
 
   Event* = object
-    kind*: cint
+    kind*: EventType
     udata*: pointer
     msg*: cstring
     buffer*: ptr cshort
@@ -34,55 +44,39 @@ type
     samplerate*: cint
     length*: cint
 
-const
-  STATE_STOPPED* = 0
-  STATE_PLAYING* = 1
-  STATE_PAUSED* = 2
-
-const
-  EVENT_LOCK* = 0
-  EVENT_UNLOCK* = 1
-  EVENT_DESTROY* = 2
-  EVENT_SAMPLES* = 3
-  EVENT_REWIND* = 4
-
 var
   inited = false
   device: AudioDeviceId
 
 {.push cdecl.}
 proc cm_init(samplerate: cint) {.importc.}
-proc cm_new_source(info: ptr SourceInfo): ptr cm_Source {.importc.}
-proc cm_new_source_from_file(filename: cstring): ptr cm_Source {.importc.}
-proc cm_new_source_from_mem(data: pointer; size: cint): ptr cm_Source {.importc.}
-proc cm_destroy_source(src: ptr cm_Source) {.importc.}
+proc cm_new_source(info: ptr SourceInfo): cm_Source {.importc.}
+proc cm_new_source_from_file(filename: cstring): cm_Source {.importc.}
+proc cm_new_source_from_mem(data: pointer; size: cint): cm_Source {.importc.}
+proc cm_destroy_source(src: cm_Source) {.importc.}
 proc cm_get_error(): cstring {.importc.}
-proc cm_set_loop(src: ptr cm_Source; loop: cint) {.importc.}
+proc cm_set_loop(src: cm_Source; loop: cint) {.importc.}
+proc cm_process(dst: ptr cshort; len: cint) {.importc.}
 
 proc setLock*(lock: EventHandler) {.importc: "cm_set_lock".}
 proc setMasterGain*(gain: cdouble) {.importc: "cm_set_master_gain".}
-proc process*(dst: ptr cshort; len: cint) {.importc: "cm_process".}
-proc getLength*(src: ptr cm_Source): cdouble {.importc: "cm_get_length".}
-proc getPosition*(src: ptr cm_Source): cdouble {.importc: "cm_get_position".}
-proc getState*(src: ptr cm_Source): cint {.importc: "cm_get_state".}
-proc setGain*(src: ptr cm_Source; gain: cdouble) {.importc: "cm_set_gain".}
-proc setPan*(src: ptr cm_Source; pan: cdouble) {.importc: "cm_set_pan".}
-proc setPitch*(src: ptr cm_Source; pitch: cdouble) {.importc: "cm_set_pitch".}
-proc play*(src: ptr cm_Source) {.importc: "cm_play".}
-proc pause*(src: ptr cm_Source) {.importc: "cm_pause".}
-proc stop*(src: ptr cm_Source) {.importc: "cm_stop".}
+proc getLength*(src: cm_Source): cdouble {.importc: "cm_get_length".}
+proc getPosition*(src: cm_Source): cdouble {.importc: "cm_get_position".}
+proc getState*(src: cm_Source): cint {.importc: "cm_get_state".}
+proc setGain*(src: cm_Source; gain: cdouble) {.importc: "cm_set_gain".}
+proc setPan*(src: cm_Source; pan: cdouble) {.importc: "cm_set_pan".}
+proc setPitch*(src: cm_Source; pitch: cdouble) {.importc: "cm_set_pitch".}
+proc play*(src: cm_Source) {.importc: "cm_play".}
+proc pause*(src: cm_Source) {.importc: "cm_pause".}
+proc stop*(src: cm_Source) {.importc: "cm_stop".}
 {.pop.}
 
-converter toCSource*(source: Source): ptr cm_Source =
-  source.csource
-
 proc finalizer(source: Source) =
-  if source.csource != nil:
-    cm_destroy_source(source.csource)
-  if source.data != nil:
-    GC_unref(source.data)
+  if source != nil:
+    cm_destroy_source(source[])
+  GC_unref(source)
 
-proc wrap(s: ptr cm_Source): Source =
+proc wrap(s: cm_Source): Source =
   if not inited:
     raise newException(
       Exception, "init() must be called before sources are created")
@@ -91,7 +85,7 @@ proc wrap(s: ptr cm_Source): Source =
     raise newException(Exception, $cm_get_error())
 
   new(result, finalizer)
-  result.csource = s
+  result[] = s
 
 proc newSource*(info: SourceInfo): Source =
   var info = info
@@ -106,37 +100,33 @@ proc newSourceFromMem*(data: pointer; size: int): Source =
 proc newSourceFromMem*(data: string): Source =
   var data = data
   result = newSourceFromMem(addr data[0], data.len)
-  result.data = cast[ref RootObj](data)
-  GC_ref(result.data)
 
 proc newSourceFromMem*(data: seq[uint8]): Source =
   var data = data
   result = newSourceFromMem(addr data[0], data.len)
-  result.data = cast[ref RootObj](data)
-  GC_ref(result.data)
 
-proc setLoop*(src: ptr cm_Source, loop: bool) =
+proc setLoop*(src: cm_Source, loop: bool) =
   cm_set_loop(src, if loop: 1 else: 0)
 
 {.push stackTrace: off.}
 proc audioCallback(userdata: pointer, stream: ptr uint8, len: cint) {.cdecl.} =
-  process(cast[ptr cshort](stream), len div 2)
-{.pop.}
+  cm_process(cast[ptr cshort](stream), len div 2)
 
-{.push stackTrace: off.}
 proc lockHandler(e: ptr Event) {.cdecl.} =
   case e.kind:
-  of EVENT_LOCK: device.lockAudioDevice()
-  of EVENT_UNLOCK: device.unlockAudioDevice()
+  of EventType.LOCK: device.lockAudioDevice()
+  of EventType.UNLOCK: device.unlockAudioDevice()
   else: discard
 {.pop.}
 
 proc deinit* {.noconv.} =
+  assert(inited)
   closeAudioDevice(device)
+  inited = false
 
-proc init*(samplerate: int=44100, buffersize: uint=1024) =
+proc init*(samplerate: int, buffersize: uint) =
   assert(not inited)
-  
+
   if sdl.init(sdl.INIT_AUDIO) != 0:
     quit "ERROR: can't initialize SDL audio: " & $sdl.getError()
 
@@ -160,5 +150,3 @@ proc init*(samplerate: int=44100, buffersize: uint=1024) =
 
   device.pauseAudioDevice(0)
   inited = true
-
-mixer.init(syrup.getSampleRate(), syrup.getBufferSize())

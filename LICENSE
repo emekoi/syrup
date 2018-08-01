@@ -27,10 +27,30 @@ The project also includes modified 3rd party source files, the full licenses for
 files can be found through their corresponding URL or in the files themselves.
 An overview of the source files are as follows:
 
-src/syrup/private/cmixer*
+src/syrup/private/cmixer_impl.c
 . Portable ANSI C audio mixer for games
 . MIT license
 . https://github.com/rxi/cmixer
+
+src/syrup/private/ttf_impl.c
+. Framework for making 2D games with chunky pixels in Lua
+. MIT license
+. https://github.com/rxi/juno
+
+src/lib/stb_truetype.h
+. Sean Barrett's true type font library
+. Public domain
+. https://github.com/nothings/stb
+
+src/lib/stb_vorbis.c
+. Sean Barrett's vorbis library
+. Public domain
+. https://github.com/nothings/stb
+
+src/lib/jo_gif.c
+. Jon Olick's minimalistic GIF writer
+. Public domain
+. http://www.jonolick.com/home/gif-writer
 
 src/syrup/mixer.nim
 . Tiny Nim library for using cmixer with sdl2

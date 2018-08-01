@@ -7,7 +7,7 @@
 
 import
   sdl2/sdl, sdl2/sdl_gpu as gpu, os, tables,
-  syrup/[system, keyboard, mouse, time, graphics]
+  syrup/[system, keyboard, mouse, time, graphics, mixer]
 
 type
   Context = ref object
@@ -21,8 +21,8 @@ type
     resizable: bool
     bordered: bool
     fps: float
-    samplerate: int
-    buffersize: uint
+    sampleRate: int
+    bufferSize: uint
 
 var
   CORE: Context
@@ -35,10 +35,14 @@ var
 proc resetVideoMode() =
   discard gpu.setFullscreen(SETTINGS.fullscreen, true)
   discard gpu.setWindowResolution(uint16(SETTINGS.width), uint16(SETTINGS.height))
-  # sdl.setWindowResizable(CORE.window, if SETTINGS.resizable: true else: false)
-  # sdl.setWindowBordered(CORE.window, if SETTINGS.bordered: true else: false)
+  sdl.setWindowResizable(CORE.window, SETTINGS.resizable)
+  sdl.setWindowBordered(CORE.window, SETTINGS.bordered)
   # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
   # graphics.canvas.reset()
+
+proc resetMixer() =
+  mixer.deinit()
+  mixer.init(SETTINGS.sampleRate, SETTINGS.bufferSize)
 
 proc finalize(ctx: Context) =
   ctx.window.destroyWindow()
@@ -67,10 +71,19 @@ proc setup() =
     gpu.logError("failed to create screen target")
     quit(QuitFailure)
 
+  # context is nil unless we created the window ourselves
+  # CORE.window = sdl.getWindowFromID(graphics.screen.context.windowID)
+
+  echo repr graphics.screen
+
+
   CORE.window = sdl.getWindowFromID(1)
   if CORE.window.isNil:
     gpu.logError("failed to find window")
     quit(QuitFailure)
+
+  # initialize mixer
+  mixer.init(SETTINGS.sampleRate, SETTINGS.bufferSize)
 
   CORE.running = true
 
@@ -86,9 +99,9 @@ proc run*(update: proc(dt: float), draw: proc()) =
   while CORE.running:
     for e in system.poll():
       case e.id:
-        of EventType.QUIT:
+        of system.EventType.QUIT:
           CORE.running = false
-        of EventType.RESIZE:
+        of system.EventType.RESIZE:
           SETTINGS.width = e.width
           SETTINGS.height = e.height
           resetVideoMode()
@@ -198,8 +211,10 @@ proc setMaxFps*(fps: float) =
 
 proc setSampleRate*(samplerate: int) =
   SETTINGS.samplerate = samplerate
+  resetMixer()
 
 proc setBufferSize*(buffersize: uint) =
   SETTINGS.buffersize = buffersize
+  resetMixer()
 
 setup()

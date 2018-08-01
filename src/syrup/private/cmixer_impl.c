@@ -23,8 +23,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
-#include "cmixer.h"
+#define CM_VERSION "0.1.1"
 
 #define UNUSED(x)         ((void) (x))
 #define CLAMP(x, a, b)    ((x) < (a) ? (a) : (x) > (b) ? (b) : (x))
@@ -40,6 +41,22 @@
 #define BUFFER_SIZE       (512)
 #define BUFFER_MASK       (BUFFER_SIZE - 1)
 
+typedef struct {
+  int type;
+  void *udata;
+  const char *msg;
+  int16_t *buffer;
+  int length;
+} cm_Event;
+
+typedef void (*cm_EventHandler)(cm_Event *e);
+
+typedef struct {
+  cm_EventHandler handler;
+  void *udata;
+  int samplerate;
+  int length;
+} cm_SourceInfo;
 
 struct cm_Source {
   cm_Source *next;              /* Next source in list */
@@ -61,6 +78,40 @@ struct cm_Source {
   double pan;           /* Pan set by `cm_set_pan()` */
 };
 
+enum {
+  CM_STATE_STOPPED,
+  CM_STATE_PLAYING,
+  CM_STATE_PAUSED
+};
+
+enum {
+  CM_EVENT_LOCK,
+  CM_EVENT_UNLOCK,
+  CM_EVENT_DESTROY,
+  CM_EVENT_SAMPLES,
+  CM_EVENT_REWIND
+};
+
+const char* cm_get_error(void);
+void cm_init(int samplerate);
+void cm_set_lock(cm_EventHandler lock);
+void cm_set_master_gain(double gain);
+void cm_process(int16_t *dst, int len);
+
+cm_Source* cm_new_source(const cm_SourceInfo *info);
+cm_Source* cm_new_source_from_file(const char *filename);
+cm_Source* cm_new_source_from_mem(void *data, int size);
+void cm_destroy_source(cm_Source *src);
+double cm_get_length(cm_Source *src);
+double cm_get_position(cm_Source *src);
+int cm_get_state(cm_Source *src);
+void cm_set_gain(cm_Source *src, double gain);
+void cm_set_pan(cm_Source *src, double pan);
+void cm_set_pitch(cm_Source *src, double pitch);
+void cm_set_loop(cm_Source *src, int loop);
+void cm_play(cm_Source *src);
+void cm_pause(cm_Source *src);
+void cm_stop(cm_Source *src);
 
 static struct {
   const char *lasterror;        /* Last error message */

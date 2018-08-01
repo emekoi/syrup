@@ -5,7 +5,7 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-import syrup, syrup/[keyboard, font]
+import syrup, syrup/[keyboard, font, mixer]
 import random, times, math
 
 syrup.setTitle("simple")

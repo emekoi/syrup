@@ -9,7 +9,7 @@
 <details>
    <summary><b>syrup/mixer.nim</b></summary>
 
-  - [ ] fix initialization order issues
+  - [x] fix initialization order issues
 
 </details>
 

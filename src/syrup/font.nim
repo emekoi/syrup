@@ -11,7 +11,7 @@ import hashes
 import graphics, embed
 import util/lru
 
-const FONT_CACHE_SIZE* {.intdefine.} = 100
+const FONT_CACHE_SIZE* {.intdefine.} = 1000
   ## the size of the font texture cache
 
 type
@@ -45,6 +45,8 @@ proc getWidth*(font: Font, txt: string): int
   ## gets the width of `str` rendered in the font
 proc render*(font: Font, txt: string): Texture
   ## creates a new Buffer with `txt` rendered on it using `font`
+proc render*(txt: string): Texture
+  ## creates a new Buffer with `txt` rendered on it using the deafult font
 proc drawText*(tex: Texture, font: Font, c: Color, txt: string, x, y: int, width: int=0)
   ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)` using `font` on `tex`
 proc drawText*(tex: Texture, c: Color, txt: string, x, y: int, width: int=0)
@@ -104,31 +106,36 @@ proc getHeight*(font: Font): int =
 proc getWidth*(font: Font, txt: string): int =
   return ttf_width(font, txt.cstring).int
 
+proc hash(f: Font): Hash =
+  result = !$cast[int](f[]).hash
+
 proc render*(font: Font, txt: string): Texture =
   var
     w, h: cint = 0
     txt = txt
   if txt.isNil or txt.len == 0: txt = " "
+
+  if not fontTexCache.hasKey(font):
+    fontTexCache[font] = newCache[string, Texture](FONT_CACHE_SIZE)
+  elif fontTexCache[font].hasKey(txt):
+    return fontTexCache[font][txt]
+
   ttf_render(font, nil, txt.cstring, w, h)
   var bitmap = newSeq[uint8](w * h)
   ttf_render(font, bitmap[0].addr, txt.cstring, w, h)
   result = newTexture(w, h)
-  result.loadPixels8(bitmap)
 
-proc hash(f: Font): Hash =
-  result = !$cast[int](f[]).hash
+  result.loadPixels8(bitmap)
+  fontTexCache[font][txt] = result
+
+proc render*(txt: string): Texture =
+  DEFAULT_FONT.render(txt)
 
 proc drawText*(tex: Texture, font: Font, c: Color, txt: string, x, y, width: int) =
-  let color = tex.color
-  tex.setColor(c)
-  if not fontTexCache.hasKey(font):
-    fontTexCache[font] = newCache[string, Texture](FONT_CACHE_SIZE)
-    fontTexCache[font][txt] = font.render(txt)
-  elif not fontTexCache[font].hasKey(txt):
-    fontTexCache[font][txt] = font.render(txt)
-
-  tex.drawTexture(fontTexCache[font][txt], x, y)
-  tex.setColor(color)
+  let t = font.render(txt)
+  t.setColor(c)
+  tex.drawTexture(t, x, y)
+  t.resetTexture()
 
 proc drawText*(tex: Texture, c: Color, txt: string, x, y: int, width: int=0) =
   graphics.screen.drawText(DEFAULT_FONT, c, txt, x, y, width)

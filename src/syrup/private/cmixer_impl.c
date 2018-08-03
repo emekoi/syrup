@@ -58,8 +58,8 @@ typedef struct {
   int length;
 } cm_SourceInfo;
 
-struct cm_Source {
-  cm_Source *next;              /* Next source in list */
+typedef struct cm_Source {
+  struct cm_Source *next;      /* Next source in list */
   int16_t buffer[BUFFER_SIZE]; /* Internal buffer with raw stereo PCM */
   cm_EventHandler handler;      /* Event handler */
   void *udata;          /* Stream's udata (from cm_SourceInfo) */
@@ -76,7 +76,7 @@ struct cm_Source {
   int active;           /* Whether the source is part of `sources` list */
   double gain;          /* Gain set by `cm_set_gain()` */
   double pan;           /* Pan set by `cm_set_pan()` */
-};
+} cm_Source;
 
 enum {
   CM_STATE_STOPPED,

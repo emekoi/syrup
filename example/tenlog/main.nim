@@ -1,33 +1,30 @@
 ##
 ##  Copyright (c) 2018 emekoi
-## 
+##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
-const withRealTime = defined(useRealtimeGC)
-
-import ../../src/syrup
-import ../../src/syrup/[keyboard, graphics, debug]
+import syrup
+import syrup/[keyboard, graphics, debug]
 import random, times, math
 
 syrup.setTitle("10log")
-graphics.clearColor = color(0.15, 0.15, 0.2)
+graphics.clearColor = (0.15, 0.15, 0.2, 1.0)
 
 const step = 8
 
 var
   x, y = 0
   elapsed = 0.0
-  frame = newBuffer(128, 128)
+  frame = newTexture(128, 128)
 
-frame.clear(pixel(255, 255, 255, 0))
-debug.setVisible(true)
-echo withRealTime
+frame.clear()
+# debug.setVisible(true)
 
 proc update(dt: float) =
-  if keyboard.keyDown("escape"): exit()
-  elapsed += dt
+  if keyboard.keyPressed("escape"): exit()
+  elapsed += dt / 2
 
 proc draw() =
   let
@@ -36,20 +33,20 @@ proc draw() =
     b = (1 + math.sin(elapsed * 0.7) / 2)
 
   if rand(1.0) > 0.5:
-    frame.drawLine color(0xff, 0xff, 0xff), x, y, x + step, y + step
+    frame.drawLine (1.0, 1.0, 1.0, 1.0), x, y, x + step, y + step
   else:
-    frame.drawLine color(0xff, 0xff, 0xff), x, y + step, x + step, y
+    frame.drawLine (1.0, 1.0, 1.0, 1.0), x, y + step, x + step, y
 
   x += step
-  if x > frame.w:
+  if x > frame.width:
     y += step
     x = 0
-  if y > frame.h:
-    frame.clear(pixel(255, 255, 255, 0))
+  if y > frame.height:
+    frame.clear((1.0, 1.0, 1.0, 0.0))
     x = 0
     y = 0
 
-  graphics.setColor color(r, g, b)
-  graphics.drawBuffer(frame, 0, 0, transform(sx=4.0, sy=4.0))
+  frame.setColor (r, g, b, 1.0)
+  graphics.drawTexture(frame, 256, 256, transform(sx=4.0, sy=4.0))
 
-syrup.run(update, nil)
+syrup.run(update, draw)

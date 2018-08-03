@@ -12,7 +12,7 @@ type
   Indicator* = proc()
 
 let
-  DEFAULT_FONT = font.fromDefault(32.0)
+  DEFAULT_FONT = font.newFontDefault(32.0)
   PADDING = 8
 
 var
@@ -53,17 +53,22 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
     # draw text
     var w = textRegionWidth
     graphics.drawRect(
-      graphics.pixel(0.0, 0.0, 0.0, 0.8),
+      (0.0, 0.0, 0.0, 0.8),
       pad div 2, yoffset - (pad div 2),
       w, height - 1
     )
-    graphics.drawText(
-      DEFAULT_FONT, graphics.color(1.0, 1.0, 1.0),
-      txt, pad, yoffset - PADDING
+
+    font.drawText(
+      (1.0, 1.0, 1.0, 1.0),
+      txt, (pad div 2) + (w div 2),
+      (yoffset - (pad div 2)) + ((height - 1) div 2)
     )
+
+
+
     # draw bars
     graphics.drawRect(
-      graphics.pixel(0.0, 0.0, 0.0, 0.8),
+      (0.0, 0.0, 0.0, 0.8),
       pad div 2 + w + 1,
       yoffset - (pad div 2),
       73, height - 1
@@ -74,14 +79,15 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
       else:
         0
       graphics.drawRect(
-        graphics.pixel(1.0, 1.0, 1.0, if i == 0: 1.0 else: 0.4),
+        (1.0, 1.0, 1.0, if i == 0: 1.0 else: 0.4),
         pad div 2 + w + PADDING div 2 + (i - 1) * 4 + 5,
         yoffset + 16 - x, 3, x
       )
 
 proc drawIndicators*() =
   if not enabled: return
-  graphics.reset()
+  graphics.resetTexture()
+  # graphics.clear()
   for p in indicators: p()
 
 proc setVisible*(e: bool) =

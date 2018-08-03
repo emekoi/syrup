@@ -5,8 +5,8 @@
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
 
+import math, strutils
 import sdl2/sdl, sdl2/sdl_gpu as gpu
-import math
 
 type
   ColorFormat* {.pure.} = enum
@@ -38,7 +38,47 @@ type
     clip*: Rect
     color*: Color
 
-var screen*: Texture
+proc color*(r, g, b, a: float): Color
+proc color*(r, g, b: float): Color
+proc color*(c: string): Color
+proc rect*(x, y, w, h: int=0): Rect
+proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform
+proc newTexture*(w, h: int): Texture
+proc newTextureFile*(filename: string): Texture
+proc width*(tex: Texture): int
+proc height*(tex: Texture): int
+proc cloneTexture*(src: Texture): Texture
+proc loadPixels*(tex: Texture, src: openarray[uint32], fmt: ColorFormat)
+proc loadPixels8*(tex: Texture, src: openarray[uint8], pal: openarray[Color])
+proc loadPixels8*(tex: Texture, src: openarray[uint8])
+# proc setBlend*(tex: Texture, blend: gpu.BlendMode)
+# proc setAlpha*[T](tex: Texture, alpha: T)
+proc setColor*(tex: Texture, c: Color)
+proc setClip*(tex: Texture, r: Rect)
+proc resetTexture*(tex: Texture)
+# proc resize*(tex: Texture, width, height: int)
+proc clear*(tex: Texture, c: Color)
+proc clear*(tex: Texture)
+# proc getColor*(tex: Texture, x: int, y: int): Color
+# proc setColor*(tex: Texture, c: Color, x: int, y: int)
+# proc copyPixels*(tex, src: Texture, x, y: int, sub: Rect, sx, sy: float=1.0)
+# proc copyPixels*(tex, src: Texture, x, y: int, sx, sy: float=1.0)
+# proc noise*(tex: Texture, seed: uint, low, high: int, grey: bool)
+# proc floodFill*(tex: Texture, c: Color, x, y: int)
+proc drawPixel*(tex: Texture, c: Color, x, y: int)
+proc drawLine*(tex: Texture, c: Color, x0, y0, x1, y1: int)
+proc drawRect*(tex: Texture, c: Color, x, y, w, h: int)
+proc drawBox*(tex: Texture, c: Color, x, y, w, h: int)
+proc drawCircle*(tex: Texture, c: Color, x, y, r: int)
+proc drawRing*(tex: Texture, c: Color, x, y, r: int)
+proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect)
+proc drawTexture*(tex: Texture, src: Texture, x, y: int, t: Transform)
+proc drawTexture*(tex: Texture, src: Texture, x, y: int)
+proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform)
+
+var
+  screen*: Texture
+  clearColor* = (1.0, 1.0, 1.0, 1.0)
 
 template lerp[T](a, b, p: T): untyped =
   ((T(1) - p) * a + p * b)
@@ -63,11 +103,30 @@ converter toRect(r: Rect): gpu.Rect =
   result.w = cfloat(r.w)
   result.h = cfloat(r.h)
 
-converter toUInt32(c: Color): uint32 =
-  let c = c.toColor()
-  uint32(c.r shr  0) and uint32(c.g shr  8) and
-    uint32(c.b shr 16) and uint32(c.a shr 24)
+proc color*(r, g, b, a: float): Color =
+  (r, g, b, a)
 
+proc color*(r, g, b: float): Color =
+  (r, g, b, 1.0)
+
+proc color*(c: string): Color =
+  let hex = parseHexInt(c)
+  if hex >= 0xffffff:
+    result.r = lerp(0.0, 255.0, float((hex shr 24) and 0xff))
+    result.g = lerp(0.0, 255.0, float((hex shr 16) and 0xff))
+    result.b = lerp(0.0, 255.0, float((hex shr  8) and 0xff))
+    result.a = lerp(0.0, 255.0, float((hex shr  0) and 0xff))
+  else:
+    result.r = lerp(0.0, 255.0, float((hex shr 16) and 0xff))
+    result.g = lerp(0.0, 255.0, float((hex shr  8) and 0xff))
+    result.b = lerp(0.0, 255.0, float((hex shr  0) and 0xff))
+    result.a = 1.0
+
+proc rect*(x, y, w, h: int=0): Rect =
+  (x: x, y: y, w: w, h: h)
+
+proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform =
+  (ox: ox, oy: oy, r: r, sx: sx, sy: sy)
 
 proc finalizer(tex: Texture) =
   if not tex.isNil:
@@ -77,13 +136,21 @@ proc newTexture*(w, h: int): Texture =
   new result, finalizer
   result.image = gpu.createImage(uint16(w), uint16(h), Format.FORMAT_RGBA)
   result.flags = {DrawFlags.DIRTY}
-  discard result.image.loadTarget()
+  discard result.image.loadTarget
+  result.resetTexture()
 
 proc newTextureFile*(filename: string): Texture =
   new result, finalizer
   result.image = gpu.loadImage(filename)
   result.flags = {DrawFlags.DIRTY}
   discard result.image.loadTarget()
+  result.resetTexture()
+
+proc width*(tex: Texture): int =
+  int(tex.image.w)
+
+proc height*(tex: Texture): int =
+  int(tex.image.h)
 
 proc cloneTexture*(src: Texture): Texture =
   new result, finalizer
@@ -92,33 +159,50 @@ proc cloneTexture*(src: Texture): Texture =
 
 proc loadPixels*(tex: Texture, src: openarray[uint32], fmt: ColorFormat) =
   var sr, sg, sb, sa: int
-  var data = newSeq[cuchar](tex.image.w * tex.image.h)
+  var data = newSeq[cuchar](tex.image.w * tex.image.h * 4)
   case fmt:
     of ColorFormat.BGRA: (sr, sg, sb, sa) = (16,  8,  0, 24)
     of ColorFormat.RGBA: (sr, sg, sb, sa) = ( 0,  8, 16, 24)
     of ColorFormat.ARGB: (sr, sg, sb, sa) = ( 8, 16, 24,  0)
     of ColorFormat.ABGR: (sr, sg, sb, sa) = (24, 16,  8,  0)
 
-  for i in countdown(data.len - 1, 0):
+  for i in 0 ..< src.len:
     data[i * 4 + 0] = cuchar((src[i] shr sr) and 0xff)
     data[i * 4 + 1] = cuchar((src[i] shr sg) and 0xff)
     data[i * 4 + 2] = cuchar((src[i] shr sb) and 0xff)
     data[i * 4 + 3] = cuchar((src[i] shr sa) and 0xff)
 
-  tex.image.updateImageBytes(nil, addr data[0], cint(tex.image.w))
+  tex.image.updateImageBytes(
+    nil, addr data[0],
+    cint(tex.image.w * 4)
+  )
 
 proc loadPixels8*(tex: Texture, src: openarray[uint8], pal: openarray[Color]) =
-  var data = newSeq[uint32](tex.image.w * tex.image.h - 1)
-  for i in countdown(data.len, 0):
-    data[i] = uint32(pal[src[i]])
-  tex.loadPixels(data, ColorFormat.RGBA)
+  var data = newSeq[cuchar](tex.image.w * tex.image.h * 4)
+  for i in 0 ..< src.len:
+    let c = sdl.Color(pal[src[i]])
+    data[i * 4 + 0] = cuchar(c.r)
+    data[i * 4 + 1] = cuchar(c.g)
+    data[i * 4 + 2] = cuchar(c.b)
+    data[i * 4 + 3] = cuchar(c.a)
+
+  tex.image.updateImageBytes(
+    nil, cast[ptr cuchar](unsafeAddr data[0]),
+    cint(tex.image.w * 4)
+  )
 
 proc loadPixels8*(tex: Texture, src: openarray[uint8]) =
-  let sz = int(tex.image.w * tex.image.h - 1)
-  var pixels = newSeq[uint32](sz)
-  for i in countdown(sz, 0):
-    pixels[i] = 0xffffff00'u32 and uint32(src[i])
-  tex.loadPixels(pixels, ColorFormat.RGBA)
+  var data = newSeq[cuchar](tex.image.w * tex.image.h * 4)
+  for i in 0 ..< src.len:
+    data[i * 4 + 0] = cuchar(0xff)
+    data[i * 4 + 1] = cuchar(0xff)
+    data[i * 4 + 2] = cuchar(0xff)
+    data[i * 4 + 3] = cuchar(src[i])
+
+  tex.image.updateImageBytes(
+    nil, cast[ptr cuchar](addr data[0]),
+    cint(tex.image.w * 4)
+  )
 
 # proc setBlend*(tex: Texture, blend: gpu.BlendMode) = discard
 
@@ -129,10 +213,16 @@ proc setColor*(tex: Texture, c: Color) =
   tex.color = c
 
 proc setClip*(tex: Texture, r: Rect) =
-  tex.setClip(r)
+  discard tex.image.target.setClipRect(r)
   tex.clip = r
 
-# proc reset*(tex: Texture) = tex.clean()
+proc resetTexture*(tex: Texture) =
+  tex.image.target.unsetTargetColor()
+  tex.image.target.unsetClip()
+  # tex.image.setSnapMode(Snap.SNAP_NONE)
+  tex.image.setImageFilter(Filter.FILTER_NEAREST)
+
+  tex.clip = (0, 0, int(tex.image.w), int(tex.image.h))
 
 # proc resize*(tex: Texture, width, height: int) = tex.clean()
 
@@ -189,17 +279,27 @@ proc drawRing*(tex: Texture, c: Color, x, y, r: int) =
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect) =
   var r = gpu.Rect(sub)
   src.image.blit(addr r, tex.image.target, float(x), float(y))
+  tex.dirty()
 
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, t: Transform) =
   var (x, y, t) = (float(x), float(y), t)
   # move rotation value into 0..PI2 range
   t.r = ((t.r mod math.TAU) + math.TAU) mod math.TAU
-  # apply offset
-  (x, y) = (x - t.ox, y - t.oy)
-  src.image.blitRotate(nil, tex.image.target, float(x), float(y), t.r)
+  # Not rotated or scaled? apply offset and draw basic
+  if t.r == 0:
+    (x, y) = (x - t.ox, y - t.oy)
+    if t.sx == 1 and t.sy == 1:
+      src.image.blit(nil, tex.image.target, x, y)
+    else:
+      src.image.blitScale(nil, tex.image.target, x, y, t.sx, t.sy)
+  else:
+    src.image.blitTransformX(nil, tex.image.target, float(x), float(y), t.ox, t.oy, t.r, t.sx, t.sy)
+
+  tex.dirty()
 
 proc drawTexture*(tex: Texture, src: Texture, x, y: int) =
   src.image.blit(nil, tex.image.target, float(x), float(y))
+  tex.dirty()
 
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform) =
   var (x, y, t, r) = (float(x), float(y), t, gpu.Rect(sub))
@@ -214,15 +314,13 @@ proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform
       src.image.blitScale(addr r, tex.image.target, x, y, t.sx, t.sy)
   else:
     src.image.blitTransformX(unsafeAddr(r), tex.image.target, float(x), float(y), t.ox, t.oy, t.r, t.sx, t.sy)
+  tex.dirty()
 
+proc width*(): int =
+  int(screen.image.w)
 
-
-
-
-
-
-
-
+proc height*(): int =
+  int(screen.image.h)
 
 proc cloneTexture*(): Texture =
   screen.cloneTexture()
@@ -246,13 +344,20 @@ proc setColor*(c: Color) =
 proc setClip*(r: Rect) =
   screen.setClip(r)
 
-# proc reset*() = screen.reset()
+proc setLineThickness*(thickness: int) =
+  discard gpu.setLineThickness(cfloat(thickness))
+
+proc getLineThickness*(): int =
+  int(gpu.getLineThickness())
+
+proc resetTexture*() =
+  screen.resetTexture()
 
 proc clear*(c: Color) =
   screen.clear(c)
 
 proc clear*() =
-  screen.clear()
+  screen.clear(clearColor)
 
 # proc getColor*(x: int, y: int): Color = screen.getColor(x, y)
 

@@ -7,7 +7,7 @@
 
 import
   sdl2/sdl, sdl2/sdl_gpu as gpu, os, tables,
-  syrup/[system, keyboard, mouse, time, graphics, mixer]
+  syrup/[system, keyboard, mouse, font, time, graphics, mixer, debug]
 
 type
   Context = ref object
@@ -115,15 +115,15 @@ proc run*(update: proc(dt: float), draw: proc()) =
       updateFunc(time.getDelta())
 
     # clear the screen
-    graphics.clear()
     CORE.target.clear()
+    graphics.clear()
 
     # run the draw callback
     if drawFunc != nil:
       drawFunc()
 
     # draw debug indicators
-    # debug.drawIndicators()
+    debug.drawIndicators()
 
     # reset input
     keyboard.reset()

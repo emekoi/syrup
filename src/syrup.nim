@@ -11,8 +11,8 @@ import
 
 type
   Context = ref object
-    running*: bool
-    window*: sdl.Window
+    running: bool
+    window: sdl.Window
 
   Config = tuple
     title: string
@@ -61,7 +61,7 @@ proc setup() =
       setStdIoUnbuffered()
 
   # setup rendering target
-  when defined(OPENGL2) or true:
+  when defined(OPENGL2):
     graphics.screen = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
       uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
   else:
@@ -73,9 +73,6 @@ proc setup() =
 
   # context is nil unless we created the window ourselves
   # CORE.window = sdl.getWindowFromID(graphics.screen.context.windowID)
-
-  echo repr graphics.screen
-
 
   CORE.window = sdl.getWindowFromID(1)
   if CORE.window.isNil:

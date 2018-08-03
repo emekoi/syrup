@@ -71,10 +71,11 @@ proc pause*(src: cm_Source) {.importc: "cm_pause".}
 proc stop*(src: cm_Source) {.importc: "cm_stop".}
 {.pop.}
 
+converter toCSource(source: Source): cm_Source = source[]
+
 proc finalizer(source: Source) =
-  if source != nil:
-    cm_destroy_source(source[])
-  GC_unref(source)
+  if not source.isNil:
+    cm_destroy_source(source)
 
 proc wrap(s: cm_Source): Source =
   if not inited:
@@ -88,8 +89,7 @@ proc wrap(s: cm_Source): Source =
   result[] = s
 
 proc newSource*(info: SourceInfo): Source =
-  var info = info
-  cm_new_source(addr info).wrap()
+  cm_new_source(unsafeAddr info).wrap()
 
 proc newSourceFromFile*(filename: string): Source =
   cm_new_source_from_file(filename).wrap()
@@ -98,12 +98,10 @@ proc newSourceFromMem*(data: pointer; size: int): Source =
   result = cm_new_source_from_mem(data, int32(size)).wrap()
 
 proc newSourceFromMem*(data: string): Source =
-  var data = data
-  result = newSourceFromMem(addr data[0], data.len)
+  result = newSourceFromMem(unsafeAddr data[0], data.len)
 
-proc newSourceFromMem*(data: seq[uint8]): Source =
-  var data = data
-  result = newSourceFromMem(addr data[0], data.len)
+proc newSourceFromMem*(data: openarray[uint8]): Source =
+  result = newSourceFromMem(unsafeAddr data[0], data.len)
 
 proc setLoop*(src: cm_Source, loop: bool) =
   cm_set_loop(src, if loop: 1 else: 0)

@@ -1,6 +1,6 @@
 ##
 ##  Copyright (c) 2018 emekoi
-## 
+##
 ##  This library is free software; you can redistribute it and/or modify it
 ##  under the terms of the MIT license. See LICENSE for details.
 ##
@@ -27,7 +27,7 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
     trueMin = min
     trueMax = max
     # get idx
-    indicatorIdx = 
+    indicatorIdx =
       if indicators.len == 0:
         0
       else:
@@ -105,4 +105,3 @@ discard addIndicator(proc(): (string, int) =
   ($m & "kb", m),
   0
 )
-

@@ -62,8 +62,8 @@ converter toCFont(font: Font): ttf_Font = font[]
 var fontTexCache = newCache[Font, Cache[string, Texture]](10)
 
 proc finalizer(font: Font) =
-  if font != nil: ttf_destroy(font)
-  GC_unref(font)
+  if not font.isNil:
+    ttf_destroy(font)
 
 let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
 

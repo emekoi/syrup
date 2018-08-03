@@ -29,9 +29,8 @@ type
     ox, oy, r, sx, sy: float
 
   Texture* = ref object
+    image: Image
     clip*: Rect
-    # image: Image
-    # target: Target
 
 
 var screen*: gpu.Target
@@ -73,23 +72,42 @@ proc clear*() = screen.clear()
 
 
 
+proc finalizer(tex: Texture) =
+  if not tex.isNil:
+    gpu.freeImage(tex.image)
 
+proc newTexture*(w, h: int): Texture =
+  new result, finalizer
+  result.image = gpu.createImage(uint16(w), uint16(h), Format.FORMAT_RGBA)
+  discard result.image.loadTarget()
 
+proc newTextureFile*(filename: string): Texture =
+  new result, finalizer
+  result.image = gpu.loadImage(filename)
+  discard result.image.loadTarget()
 
+proc cloneTexture*(src: Texture): Texture =
+  new result, finalizer
+  result = src
+  result.image = src.image.copyImage()
 
-proc newTexture*(w, h: int): Texture = discard
+proc loadPixels*(tex: Texture, src: openarray[uint32]) =
+  let data = cast[ptr cuchar](unsafeAddr src[0])
+  tex.image.updateImageBytes(nil, data, cint(tex.image.w))
 
-proc newTextureFile*(filename: string): Texture = discard
+# proc loadPixels8*(tex: Texture, src: openarray[uint8], pal: openarray[Color]) =
+#   let sz = int(tex.image.w * tex.image.h - 1)
+#   var pixels = newSeq[uint32](sz)
+#   for i in countdown(sz, 0):
+#     pixels[i] = uint32(pal[src[i]])
+#   tex.loadPixels(pixels)
 
-proc newTextureString*(str: string): Texture = discard
-
-proc cloneTexture*(src: Texture): Texture = discard
-
-proc loadPixels*(tex: Texture, src: openarray[uint32]) = discard
-
-proc loadPixels8*(tex: Texture, src: openarray[uint8], pal: openarray[Color]) = discard
-
-proc loadPixels8*(tex: Texture, src: openarray[uint8]) = discard
+proc loadPixels8*(tex: Texture, src: openarray[uint8]) =
+  let sz = int(tex.image.w * tex.image.h - 1)
+  var pixels = newSeq[uint32](sz)
+  for i in countdown(sz, 0):
+    pixels[i] = 0xffffff00'u32 and uint32(src[i])
+  tex.loadPixels(pixels)
 
 proc setBlend*(tex: Texture, blend: BlendMode) = discard
 
@@ -129,7 +147,8 @@ proc drawCircle*(tex: Texture, c: Color, x, y, r: int) = discard
 
 proc drawRing*(tex: Texture, c: Color, x, y, r: int) = discard
 
-proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform) = discard
+proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform) =
+  tex.image.blitTransformX(sub)
 
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect) = discard
 

@@ -123,7 +123,7 @@ proc run*(update: proc(dt: float), draw: proc()) =
     if drawFunc != nil:
       drawFunc()
 
-    CORE.target.circle(0.0, 0.0, 1.0, (1.0, 1.0, 1.0, 1.0))
+    # CORE.target.circle(0.0, 0.0, 1.0, (1.0, 1.0, 1.0, 1.0))
 
     # draw debug indicators
     # debug.drawIndicators()
@@ -133,7 +133,7 @@ proc run*(update: proc(dt: float), draw: proc()) =
     mouse.reset()
 
     # update the screen
-    # graphics.screen.image.blit(nil, CORE.target, 0.0, 0.0)
+    graphics.screen.image.blit(nil, CORE.target, 0.5, 0.5)
     CORE.target.flip()
 
     let step = 1.0 / SETTINGS.fps

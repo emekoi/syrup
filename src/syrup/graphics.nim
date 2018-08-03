@@ -43,10 +43,10 @@ template lerp[T](a, b, p: T): untyped =
   ((T(1) - p) * a + p * b)
 
 converter toColor*(c: Color): sdl.Color =
-  result.r = uint8(lerp(0.0, 256.0, c.r))
-  result.g = uint8(lerp(0.0, 256.0, c.g))
-  result.b = uint8(lerp(0.0, 256.0, c.b))
-  result.a = uint8(lerp(0.0, 256.0, c.a))
+  result.r = uint8(lerp(0.0, 255.0, c.r))
+  result.g = uint8(lerp(0.0, 255.0, c.g))
+  result.b = uint8(lerp(0.0, 255.0, c.b))
+  result.a = uint8(lerp(0.0, 255.0, c.a))
 
 proc finalizer(tex: Texture) =
   if not tex.isNil:

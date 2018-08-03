@@ -13,6 +13,7 @@ type
   Context = ref object
     running: bool
     window: sdl.Window
+    target: gpu.Target
 
   Config = tuple
     title: string
@@ -61,15 +62,18 @@ proc setup() =
       setStdIoUnbuffered()
 
   # setup rendering target
+
   when defined(OPENGL2):
-    graphics.screen = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
+    CORE.target = gpu.initRenderer(gpu.RENDERER_OPENGL_2,
       uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
   else:
-    graphics.screen = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
+    CORE.target = gpu.init(uint16(SETTINGS.width), uint16(SETTINGS.height), flags)
 
-  if graphics.screen.isNil:
+  if CORE.target.isNil:
     gpu.logError("failed to create screen target")
     quit(QuitFailure)
+
+  graphics.screen = newTexture(SETTINGS.width, SETTINGS.height)
 
   # context is nil unless we created the window ourselves
   # CORE.window = sdl.getWindowFromID(graphics.screen.context.windowID)
@@ -111,11 +115,15 @@ proc run*(update: proc(dt: float), draw: proc()) =
       updateFunc(time.getDelta())
 
     # clear the screen
-    graphics.clear()
+    let c: graphics.Color = (1.0, 1.0, 0.0, 1.0)
+    CORE.target.clear()
+    graphics.clear(c)
 
     # run the draw callback
     if drawFunc != nil:
       drawFunc()
+
+    CORE.target.circle(0.0, 0.0, 1.0, (1.0, 1.0, 1.0, 1.0))
 
     # draw debug indicators
     # debug.drawIndicators()
@@ -125,7 +133,8 @@ proc run*(update: proc(dt: float), draw: proc()) =
     mouse.reset()
 
     # update the screen
-    graphics.screen.flip()
+    # graphics.screen.image.blit(nil, CORE.target, 0.0, 0.0)
+    CORE.target.flip()
 
     let step = 1.0 / SETTINGS.fps
 

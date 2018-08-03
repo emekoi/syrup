@@ -115,15 +115,12 @@ proc run*(update: proc(dt: float), draw: proc()) =
       updateFunc(time.getDelta())
 
     # clear the screen
-    let c: graphics.Color = (1.0, 1.0, 0.0, 1.0)
+    graphics.clear()
     CORE.target.clear()
-    graphics.clear(c)
 
     # run the draw callback
     if drawFunc != nil:
       drawFunc()
-
-    # CORE.target.circle(0.0, 0.0, 1.0, (1.0, 1.0, 1.0, 1.0))
 
     # draw debug indicators
     # debug.drawIndicators()
@@ -133,7 +130,11 @@ proc run*(update: proc(dt: float), draw: proc()) =
     mouse.reset()
 
     # update the screen
-    graphics.screen.image.blit(nil, CORE.target, 0.5, 0.5)
+    graphics.screen.image.blit(
+      nil, CORE.target,
+      SETTINGS.width / 2,
+      SETTINGS.height / 2
+    )
     CORE.target.flip()
 
     let step = 1.0 / SETTINGS.fps

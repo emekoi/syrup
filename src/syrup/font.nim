@@ -46,7 +46,13 @@ proc getWidth*(font: Font, txt: string): int
 proc render*(font: Font, txt: string): Texture
   ## creates a new Buffer with `txt` rendered on it using `font`
 proc drawText*(tex: Texture, font: Font, c: Color, txt: string, x, y: int, width: int=0)
-  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)`
+  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)` using `font` on `tex`
+proc drawText*(tex: Texture, c: Color, txt: string, x, y: int, width: int=0)
+  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)` using the default font on `tex`
+proc drawText*(font: Font, c: Color, txt: string, x, y: int, width: int=0)
+  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)` using `font` on the screen
+proc drawText*(c: Color, txt: string, x, y: int, width: int=0)
+  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)` using the default font on the screen
 
 {.push cdecl, importc.}
 proc ttf_new(data: pointer, len: cint): ttf_Font
@@ -113,7 +119,7 @@ proc hash(f: Font): Hash =
   result = !$cast[int](f[]).hash
 
 proc drawText*(tex: Texture, font: Font, c: Color, txt: string, x, y, width: int) =
-  # let color = tex.color
+  let color = tex.color
   tex.setColor(c)
   if not fontTexCache.hasKey(font):
     fontTexCache[font] = newCache[string, Texture](FONT_CACHE_SIZE)
@@ -122,4 +128,13 @@ proc drawText*(tex: Texture, font: Font, c: Color, txt: string, x, y, width: int
     fontTexCache[font][txt] = font.render(txt)
 
   tex.drawTexture(fontTexCache[font][txt], x, y)
-  # tex.setColor(color)
+  tex.setColor(color)
+
+proc drawText*(tex: Texture, c: Color, txt: string, x, y: int, width: int=0) =
+  graphics.screen.drawText(DEFAULT_FONT, c, txt, x, y, width)
+
+proc drawText*(font: Font, c: Color, txt: string, x, y: int, width: int=0) =
+  graphics.screen.drawText(font, c, txt, x, y, width)
+
+proc drawText*(c: Color, txt: string, x, y: int, width: int=0) =
+  graphics.screen.drawText(DEFAULT_FONT, c, txt, x, y, width)

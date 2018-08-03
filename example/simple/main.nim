@@ -15,7 +15,7 @@ proc update(dt: float) =
   if keyboard.keyDown("escape"): exit()
 
 proc draw() =
-  # graphics.screen.clear((1.0, 1.0, 0.0, 1.0))
+  graphics.screen.drawCircle((1.0, 1.0, 0.0, 1.0), 0, 0, 255)
   discard
 
 syrup.run(update, draw)

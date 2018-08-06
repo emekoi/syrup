@@ -31,11 +31,11 @@ proc newFontDefault*(ptsize: float): Font
   ## returns a copy of the default embeded font with the givern size
 proc newFontDefault*(): Font
   ## returns a copy of the default embeded font
-proc newFont*(data: seq[uint8], ptsize: float): Font
-  ## attemtpts to create a font from a sequence of bytes
-proc newFontFile*(filename: string, ptsize: float): Font
+proc newFont*(file: File, ptsize: float): Font
   ## loads a font from a file
-proc newFontString*(data: string, ptsize: float): Font
+proc newFont*(data: openarray[uint8], ptsize: float): Font
+  ## attemtpts to create a font from a sequence of bytes
+proc newFont*(data: string, ptsize: float): Font
   ## creates a font from a string
 proc setSize*(font: Font, ptsize: float)
   ## sets the font point size
@@ -73,29 +73,32 @@ proc finalizer(font: Font) =
   if not font.isNil:
     ttf_destroy(font)
 
-let DEFAULT_FONT = newFontString(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
+let DEFAULT_FONT = newFont(DEFAULT_FONT_DATA, DEFAULT_FONT_SIZE)
 
 proc newFontDefault*(ptsize: float): Font =
-  newFontString(DEFAULT_FONT_DATA, ptsize)
+  newFont(DEFAULT_FONT_DATA, ptsize)
 
 proc newFontDefault*(): Font =
   DEFAULT_FONT
 
-proc newFont*(data: seq[uint8], ptsize: float): Font =
+proc newFont*(file: File, ptsize: float): Font =
+  new result, finalizer
+  let data = file.readAll()
+  result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
+  if result == nil: raise newException(Exception, "unable to load font")
+  result.setSize(ptsize)
+
+proc newFont*(data: openarray[uint8], ptsize: float): Font =
   new result, finalizer
   result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
   if result == nil: raise newException(Exception, "unable to load font")
   result.setSize(ptsize)
 
-proc newFontString*(data: string, ptsize: float): Font =
+proc newFont*(data: string, ptsize: float): Font =
   new result, finalizer
   result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
   if result == nil: raise newException(Exception, "unable to load font")
   result.setSize(ptsize)
-
-proc newFontFile*(filename: string, ptsize: float): Font =
-  let data = readFile(filename)
-  result = newFontString(data, ptsize)
 
 proc setSize*(font: Font, ptsize: float) =
   ttf_ptsize(font, ptsize.cfloat)

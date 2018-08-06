@@ -44,31 +44,67 @@ type
     samplerate*: cint
     length*: cint
 
+proc newSource*(info: SourceInfo): Source
+  ## @
+# proc newSource*(filename: string): Source
+proc newSource*(file: File): Source
+  ## @
+proc newSource*(data: pointer; size: int): Source
+  ## @
+proc newSource*(data: string): Source
+  ## @
+proc newSource*(data: openarray[uint8]): Source
+  ## @
+proc setLock*(lock: EventHandler)
+  ## @
+proc setMasterGain*(gain: float)
+  ## @
+proc getLength*(src: Source): float
+  ## @
+proc getPosition*(src: Source): float
+  ## @
+proc getState*(src: Source): State
+  ## @
+proc setGain*(src: Source; gain: float)
+  ## @
+proc setPan*(src: Source; pan: float)
+  ## @
+proc setPitch*(src: Source; pitch: float)
+  ## @
+proc setLoop*(src: Source, loop: bool)
+  ## @
+proc play*(src: Source)
+  ## @
+proc pause*(src: Source)
+  ## @
+proc stop*(src: Source)
+  ## @
+
 var
   inited = false
   device: AudioDeviceId
 
-{.push cdecl.}
-proc cm_init(samplerate: cint) {.importc.}
-proc cm_new_source(info: ptr SourceInfo): cm_Source {.importc.}
-proc cm_new_source_from_file(filename: cstring): cm_Source {.importc.}
-proc cm_new_source_from_mem(data: pointer; size: cint): cm_Source {.importc.}
-proc cm_destroy_source(src: cm_Source) {.importc.}
-proc cm_get_error(): cstring {.importc.}
-proc cm_set_loop(src: cm_Source; loop: cint) {.importc.}
-proc cm_process(dst: ptr cshort; len: cint) {.importc.}
+{.push cdecl, importc.}
+proc cm_init(samplerate: cint)
+proc cm_new_source(info: ptr SourceInfo): cm_Source
+# proc cm_new_source_from_file(filename: cstring): cm_Source
+proc cm_new_source_from_mem(data: pointer; size: cint): cm_Source
+proc cm_destroy_source(src: cm_Source)
+proc cm_get_error(): cstring
+proc cm_process(dst: ptr cshort; len: cint)
 
-proc setLock*(lock: EventHandler) {.importc: "cm_set_lock".}
-proc setMasterGain*(gain: cdouble) {.importc: "cm_set_master_gain".}
-proc getLength*(src: cm_Source): cdouble {.importc: "cm_get_length".}
-proc getPosition*(src: cm_Source): cdouble {.importc: "cm_get_position".}
-proc getState*(src: cm_Source): cint {.importc: "cm_get_state".}
-proc setGain*(src: cm_Source; gain: cdouble) {.importc: "cm_set_gain".}
-proc setPan*(src: cm_Source; pan: cdouble) {.importc: "cm_set_pan".}
-proc setPitch*(src: cm_Source; pitch: cdouble) {.importc: "cm_set_pitch".}
-proc play*(src: cm_Source) {.importc: "cm_play".}
-proc pause*(src: cm_Source) {.importc: "cm_pause".}
-proc stop*(src: cm_Source) {.importc: "cm_stop".}
+proc cm_set_lock(lock: EventHandler)
+proc cm_set_master_gain(gain: cdouble)
+proc cm_get_length(src: cm_Source): cdouble
+proc cm_get_position(src: cm_Source): cdouble
+proc cm_get_state(src: cm_Source): cint
+proc cm_set_gain(src: cm_Source; gain: cdouble)
+proc cm_set_pan(src: cm_Source; pan: cdouble)
+proc cm_set_pitch(src: cm_Source; pitch: cdouble)
+proc cm_set_loop(src: cm_Source; loop: cint)
+proc cm_play(src: cm_Source)
+proc cm_pause(src: cm_Source)
+proc cm_stop(src: cm_Source)
 {.pop.}
 
 converter toCSource(source: Source): cm_Source = source[]
@@ -91,20 +127,56 @@ proc wrap(s: cm_Source): Source =
 proc newSource*(info: SourceInfo): Source =
   cm_new_source(unsafeAddr info).wrap()
 
-proc newSourceFromFile*(filename: string): Source =
-  cm_new_source_from_file(filename).wrap()
+# proc newSource*(filename: string): Source =
+#   cm_new_source_from_file(filename).wrap()
 
-proc newSourceFromMem*(data: pointer; size: int): Source =
+proc newSource*(file: File): Source =
+  newSource(file.readAll()).wrap()
+
+proc newSource*(data: pointer; size: int): Source =
   result = cm_new_source_from_mem(data, int32(size)).wrap()
 
-proc newSourceFromMem*(data: string): Source =
-  result = newSourceFromMem(unsafeAddr data[0], data.len)
+proc newSource*(data: string): Source =
+  result = newSource(unsafeAddr data[0], data.len)
 
-proc newSourceFromMem*(data: openarray[uint8]): Source =
-  result = newSourceFromMem(unsafeAddr data[0], data.len)
+proc newSource*(data: openarray[uint8]): Source =
+  result = newSource(unsafeAddr data[0], data.len)
 
-proc setLoop*(src: cm_Source, loop: bool) =
-  cm_set_loop(src, if loop: 1 else: 0)
+proc setLock*(lock: EventHandler) =
+  cm_set_lock(lock)
+
+proc setMasterGain*(gain: float) =
+  cm_set_master_gain(gain)
+
+proc getLength*(src: Source): float =
+  cm_get_length(src)
+
+proc getPosition*(src: Source): float =
+  cm_get_position(src)
+
+proc getState*(src: Source): State =
+  State(cm_get_state(src))
+
+proc setGain*(src: Source; gain: float) =
+  cm_set_gain(src, gain)
+
+proc setPan*(src: Source; pan: float) =
+  cm_set_pan(src, pan)
+
+proc setPitch*(src: Source; pitch: float) =
+  cm_set_pitch(src, pitch)
+
+proc setLoop*(src: Source, loop: bool) =
+  cm_set_loop(src, cint(loop))
+
+proc play*(src: Source) =
+  cm_play(src)
+
+proc pause*(src: Source) =
+  cm_pause(src)
+
+proc stop*(src: Source) =
+  cm_stop(src)
 
 {.push stackTrace: off.}
 proc audioCallback(userdata: pointer, stream: ptr uint8, len: cint) {.cdecl.} =

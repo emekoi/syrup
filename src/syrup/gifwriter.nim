@@ -6,7 +6,8 @@
 ##
 
 
-import math
+import math, sdl2/sdl_gpu as gpu
+import graphics
 
 {.passl: "-lm".}
 {.compile: "private/jo_gif.c".}
@@ -100,28 +101,39 @@ proc writeGif*(gif: Gif, pixels: pointer, delay=0.0, localPalette=false) =
     addr gif.gif, cast[ptr cuchar](pixels),
     cshort(c), cint(localPalette))
 
-proc checkedWrite[T](gif: Gif, pixels: T, delay: float, localPalette: bool) =
-  var pixels = pixels
-  assert pixels.len * pixels[0].sizeof == gif.expectedFrameSize
-  gif.writeGif(addr pixels[0], delay, localPalette)
+# proc checkedWrite[T](gif: Gif, pixels: T, delay: float, localPalette: bool) =
+#   var pixels = pixels
+#   assert pixels.len * pixels[0].sizeof == gif.expectedFrameSize
+#   writeGif(addr pixels[0], delay, localPalette)
 
-proc writeGif*(gif: Gif, pixels: seq[uint32], delay=0.0, localPalette=false) =
-  checkedWrite[seq[uint32]](gif, pixels, delay, localPalette)
+# proc writeGif*(gif: Gif, pixels: seq[uint32], delay=0.0, localPalette=false) =
+#   checkedWrite[seq[uint32]](gif, pixels, delay, localPalette)
+#
+# proc writeGif*(gif: Gif, pixels: seq[uint8], delay=0.0, localPalette=false) =
+#   checkedWrite[seq[uint8]](gif, pixels, delay, localPalette)
+#
+# proc writeGif*(gif: Gif, pixels: seq[Pixel], delay=0.0, localPalette=false) =
+#   checkedWrite[seq[Pixel]](gif, pixels, delay, localPalette)
 
-proc writeGif*(gif: Gif, pixels: seq[uint8], delay=0.0, localPalette=false) =
-  checkedWrite[seq[uint8]](gif, pixels, delay, localPalette)
-
-proc writeGif*(gif: Gif, pixels: seq[Pixel], delay=0.0, localPalette=false) =
-  checkedWrite[seq[Pixel]](gif, pixels, delay, localPalette)
-
-proc writeGif*(gif: Gif, buf: Buffer, delay=0.0, localPalette=false) =
-  assert buf.w == gif.w and buf.h == gif.h,
+proc writeGif*(gif: Gif, tex: Texture, delay=0.0, localPalette=false) =
+  assert tex.width == gif.w and tex.height == gif.h,
     "bad buffer dimensions for gif object, expected " & $gif.w & "x" & $gif.h
-
+  let pixels = cast[ptr array[0, uint8]](tex.image.copySurfaceFromImage().pixels)[]
   for i in 0..<(gif.w * gif.h):
-    var n = i * 4
-    gif.buf[n    ] = buf.pixels[i].rgba.r
-    gif.buf[n + 1] = buf.pixels[i].rgba.g
-    gif.buf[n + 2] = buf.pixels[i].rgba.b
+    gif.buf[i * 4 + 0] = pixels[i + 0]
+    gif.buf[i * 4 + 1] = pixels[i + 1]
+    gif.buf[i * 4 + 2] = pixels[i + 2]
+
+  gif.writeGif(addr gif.buf[0], delay, localPalette)
+
+
+proc writeGif*(gif: Gif, delay=0.0, localPalette=false) =
+  assert graphics.screen.width == gif.w and graphics.screen.height == gif.h,
+    "bad buffer dimensions for gif object, expected " & $gif.w & "x" & $gif.h
+  let pixels = cast[ptr array[0, uint8]](graphics.screen.image.copySurfaceFromImage().pixels)[]
+  for i in 0..<(gif.w * gif.h):
+    gif.buf[i * 4 + 0] = pixels[i + 0]
+    gif.buf[i * 4 + 1] = pixels[i + 1]
+    gif.buf[i * 4 + 2] = pixels[i + 2]
 
   gif.writeGif(addr gif.buf[0], delay, localPalette)

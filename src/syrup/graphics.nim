@@ -39,42 +39,79 @@ type
     color*: Color
 
 proc color*(r, g, b, a: float): Color
+  ## @
 proc color*(r, g, b: float): Color
+  ## @
 proc color*(c: string): Color
+  ## @
 proc rect*(x, y, w, h: int=0): Rect
+  ## @
 proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform
+  ## @
 proc newTexture*(w, h: int): Texture
-proc newTextureFile*(filename: string): Texture
+  ## @
+proc newTexture*(filename: string): Texture
+  ## @
 proc width*(tex: Texture): int
+  ## @
 proc height*(tex: Texture): int
+  ## @
 proc cloneTexture*(src: Texture): Texture
+  ## @
 proc loadPixels*(tex: Texture, src: openarray[uint32], fmt: ColorFormat)
+  ## @
 proc loadPixels8*(tex: Texture, src: openarray[uint8], pal: openarray[Color])
+  ## @
 proc loadPixels8*(tex: Texture, src: openarray[uint8])
+  ## @
 # proc setBlend*(tex: Texture, blend: gpu.BlendMode)
+## @
 # proc setAlpha*[T](tex: Texture, alpha: T)
+## @
 proc setColor*(tex: Texture, c: Color)
+  ## @
 proc setClip*(tex: Texture, r: Rect)
+  ## @
 proc resetTexture*(tex: Texture)
+  ## @
 # proc resize*(tex: Texture, width, height: int)
+## @
 proc clear*(tex: Texture, c: Color)
+  ## @
 proc clear*(tex: Texture)
+## @
 # proc getColor*(tex: Texture, x: int, y: int): Color
+## @
 # proc setColor*(tex: Texture, c: Color, x: int, y: int)
+## @
 # proc copyPixels*(tex, src: Texture, x, y: int, sub: Rect, sx, sy: float=1.0)
+## @
 # proc copyPixels*(tex, src: Texture, x, y: int, sx, sy: float=1.0)
+## @
 # proc noise*(tex: Texture, seed: uint, low, high: int, grey: bool)
+## @
 # proc floodFill*(tex: Texture, c: Color, x, y: int)
+## @
 proc drawPixel*(tex: Texture, c: Color, x, y: int)
+  ## @
 proc drawLine*(tex: Texture, c: Color, x0, y0, x1, y1: int)
+  ## @
 proc drawRect*(tex: Texture, c: Color, x, y, w, h: int)
+  ## @
 proc drawBox*(tex: Texture, c: Color, x, y, w, h: int)
+  ## @
 proc drawCircle*(tex: Texture, c: Color, x, y, r: int)
+  ## @
 proc drawRing*(tex: Texture, c: Color, x, y, r: int)
+  ## @
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect)
+  ## @
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, t: Transform)
+  ## @
 proc drawTexture*(tex: Texture, src: Texture, x, y: int)
+  ## @
 proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform)
+  ## @
 
 var
   screen*: Texture
@@ -139,7 +176,7 @@ proc newTexture*(w, h: int): Texture =
   discard result.image.loadTarget
   result.resetTexture()
 
-proc newTextureFile*(filename: string): Texture =
+proc newTexture*(filename: string): Texture =
   new result, finalizer
   result.image = gpu.loadImage(filename)
   result.flags = {DrawFlags.DIRTY}

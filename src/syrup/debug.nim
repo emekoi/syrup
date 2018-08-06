@@ -11,6 +11,15 @@ type
   IndicatorCallBack* = proc(): (string, SomeNumber)
   Indicator* = proc()
 
+proc drawIndicators*()
+  ## @
+proc setVisible*(e: bool)
+  ## @
+proc getVisible*(): bool
+  ## @
+proc addIndicator*[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicator
+  ## @
+
 let
   DEFAULT_FONT = font.newFontDefault(32.0)
   PADDING = 8
@@ -63,8 +72,6 @@ proc newIndicator[T: SomeNumber](fn: IndicatorCallBack, min, max: T=0): Indicato
       txt, (pad div 2) + (w div 2),
       (yoffset - (pad div 2)) + ((height - 1) div 2)
     )
-
-
 
     # draw bars
     graphics.drawRect(

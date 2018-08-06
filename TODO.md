@@ -2,7 +2,7 @@
 <details>
    <summary><b>syrup/gifwriter.nim</b></summary>
 
-  - [ ] convert to SDL_gpu
+  - [x] convert to SDL_gpu
 
 </details>
 
@@ -17,6 +17,6 @@
    <summary><b>syrup/graphics.nim</b></summary>
 
   - [ ] add types
-  - [ ] add drawing primitives
+  - [x] add drawing primitives
 
 </details>

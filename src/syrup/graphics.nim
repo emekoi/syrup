@@ -258,6 +258,7 @@ proc resetTexture*(tex: Texture) =
   tex.image.target.unsetClip()
   # tex.image.setSnapMode(Snap.SNAP_NONE)
   tex.image.setImageFilter(Filter.FILTER_NEAREST)
+  tex.image.setWrapMode(Wrap.WRAP_NONE, Wrap.WRAP_NONE)
 
   tex.clip = (0, 0, int(tex.image.w), int(tex.image.h))
 

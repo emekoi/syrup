@@ -56,7 +56,9 @@ proc newShader*(vertexFile, fragmentFile: File): Shader
   ## @
 proc newShader*(vertexSource, fragmentSource: string): Shader
   ## @
-proc useShader*(shader: Shader)
+proc activateShader*(shader: Shader)
+  ## @
+proc deactivateShader*()
   ## @
 proc setBool*(shader: Shader, name: string, value: bool)
   ## @
@@ -88,19 +90,19 @@ proc newShader*(vertexSource, fragmentSource: string): Shader =
   result.log.vertex = $gpu.getShaderMessage()
 
   if vert == 0:
-    raise newException(Exception, "vertex shader: " & result.log.vertex)
+    raise newException(Exception, "[vertex shader]\n" & result.log.vertex)
 
   let frag = gpu.compileShader(ShaderType.FRAGMENT_SHADER, fragmentSource)
   result.log.fragment = $gpu.getShaderMessage()
 
   if frag == 0:
-    raise newException(Exception, "fragment shader: " & result.log.fragment)
+    raise newException(Exception, "[fragment shader]\n" & result.log.fragment)
 
   result.program = gpu.linkShaders(vert, frag)
   result.log.program = $gpu.getShaderMessage()
 
   if result.program == 0:
-    raise newException(Exception, "shader program: " & result.log.program)
+    raise newException(Exception, "[shader program]\n" & result.log.program)
 
   result.shaderBlock = result.program.loadShaderBLock(
     "gpu_Vertex", "gpu_TexCoord", "gpu_Color",
@@ -119,8 +121,16 @@ proc newShader*(vertexSource, fragmentSource: string): Shader =
 #   gl.vertexAttribPointer(location, size, kind, normal, stride * sizeof(T), p * sizeof(T))
 #   gl.enableVertexAttribArray(location)
 
-proc useShader*(shader: Shader) =
+proc activateShader*(shader: Shader) =
   shader.program.activateShaderProgram(addr shader.shaderBlock)
+
+proc deactivateShader*() =
+  gpu.deactivateShaderProgram()
+
+template withShader*(shader: Shader, body: untyped): untyped =
+  shader.activate()
+  body
+  deactivateShader()
 
 proc setBool*(shader: Shader, name: string, value: bool) =
   shader.program.getUniformLocation(name).setUniformi(int(value))

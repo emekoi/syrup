@@ -20,7 +20,6 @@ var
   frame = newTexture(128, 128)
 
 frame.clear()
-# debug.setVisible(true)
 
 proc update(dt: float) =
   if keyboard.keyPressed("escape"): exit()

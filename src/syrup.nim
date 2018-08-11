@@ -39,7 +39,7 @@ proc resetVideoMode() =
   sdl.setWindowResizable(CORE.window, SETTINGS.resizable)
   sdl.setWindowBordered(CORE.window, SETTINGS.bordered)
   # graphics.canvas.resize(SETTINGS.width, SETTINGS.height)
-  # graphics.canvas.reset()
+  graphics.resetTexture()
 
 proc resetMixer() =
   mixer.deinit()

@@ -19,8 +19,8 @@ proc update(dt: float) =
     syrup.setFullscreen(not syrup.getFullscreen())
 
 proc draw() =
-  bigFont.drawText((0.0, 0.0, 0.0, 1.0), "HELLO WORLD", 255, 255)
-  bigFont.drawText((0.0, 0.0, 0.0, 1.0), "HELLO WORLD", 255, 127)
+  bigFont.drawText((1.0, 1.0, 1.0, 1.0), "HELLO WORLD", 255, 255)
+  bigFont.drawText((1.0, 1.0, 1.0, 1.0), "HELLO WORLD", 255, 127)
   graphics.drawRing((1.0, 0.0, 0.0, 1.0), 65, 255, 127)
 
 syrup.run(update, draw)

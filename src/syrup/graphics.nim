@@ -115,7 +115,6 @@ proc drawTexture*(tex: Texture, src: Texture, x, y: int, sub: Rect, t: Transform
 
 var
   screen*: Texture
-  clearColor* = (1.0, 1.0, 1.0, 1.0)
 
 template lerp[T](a, b, p: T): untyped =
   ((T(1) - p) * a + p * b)
@@ -395,7 +394,7 @@ proc clear*(c: Color) =
   screen.clear(c)
 
 proc clear*() =
-  screen.clear(clearColor)
+  screen.clear()
 
 # proc getColor*(x: int, y: int): Color = screen.getColor(x, y)
 

@@ -111,12 +111,12 @@ proc run*(update: proc(dt: float), draw: proc()) =
 
     time.step()
 
-    if updateFunc != nil:
-      updateFunc(time.getDelta())
-
     # clear the screen
     CORE.target.clear()
     graphics.clear()
+
+    if updateFunc != nil:
+      updateFunc(time.getDelta())
 
     # run the draw callback
     if drawFunc != nil:
